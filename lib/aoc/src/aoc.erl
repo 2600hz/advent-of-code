@@ -11,6 +11,10 @@
         ,run_intcode/1
         ]).
 
+-define(INTCODE_HALT, 99).
+-define(INTCODE_SUM, 1).
+-define(INTCODE_MULT, 2).
+
 mass_fuel_req(Mass) ->
     (Mass div 3) - 2.
 
@@ -41,11 +45,11 @@ run_intcode(InstructionPointer, Intcode) ->
     Opcode = maps:get(InstructionPointer, Intcode),
     process_opcode(InstructionPointer, Intcode, Opcode).
 
-process_opcode(_InstructionPointer, #{0 := Final}, 99) ->
+process_opcode(_InstructionPointer, #{0 := Final}, ?INTCODE_HALT) ->
     Final;
-process_opcode(InstructionPointer, Intcode, 1) ->
+process_opcode(InstructionPointer, Intcode, ?INTCODE_SUM) ->
     sum(InstructionPointer, Intcode);
-process_opcode(InstructionPointer, Intcode, 2) ->
+process_opcode(InstructionPointer, Intcode, ?INTCODE_MULT) ->
     multiply(InstructionPointer, Intcode).
 
 step(InstructionPointer, Parameters, Intcode) ->

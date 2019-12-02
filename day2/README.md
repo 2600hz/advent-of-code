@@ -8,4 +8,6 @@ Then just run `./day1.escript` or `./day1-2.escript` to get the answers.
 
 ## Commentary
 
-Since we don't actually need the list of masses themselves, just a running total, we could change this to calculate the fuel requirements on the fly (memory savings). If the input list was larger (only 100 lines here), this would be the approach to not exhaust the system's resources.
+Intcode programs require tracking the "position" in the program (InstructionPointer) as well as the data (opcode instruction or parameter). In most languages with destructive updating, we'd use a 0-indexed array. In Erlang, maps are the closest and easiest datastructure to represent the Intcode. `#{position() => data()}` gives us the ability to have random-access reading and writing to the Intcode program.
+
+Using macros to represent the opcodes gives us more readable code than having to remember what magic numbers represent. NO MAGIC NUMBERS! :)
