@@ -4,7 +4,7 @@ You need Erlang/OTP 21.3 in your path.
 
 In `lib/aoc` run `make` to compile to helper library.
 
-Then just run `./day1.escript` or `./day1-2.escript` to get the answers.
+Then just run `./day2.escript` or `./day2-2.escript` to get the answers.
 
 ## Commentary
 
