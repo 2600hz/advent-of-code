@@ -1,5 +1,5 @@
 #!/usr/bin/env escript
-%%! +A2
+%%! +A2 -pa ../lib/aoc/_build/default/lib/aoc/ebin
 %% -*- coding: utf-8 -*-
 
 %% --- Part Two ---
@@ -53,14 +53,11 @@ main(_) ->
     io:format("answer: ~p~n", [Answer]).
 
 mass_and_fuel_req(Mass) ->
-    mass_and_fuel_req(mass_fuel_req(Mass), 0).
+    mass_and_fuel_req(aoc:mass_fuel_req(Mass), 0).
 
 mass_and_fuel_req(FuelReq, Total) when FuelReq =< 0 -> Total;
 mass_and_fuel_req(FuelReq, Total) ->
-    mass_and_fuel_req(mass_fuel_req(FuelReq), Total + FuelReq).
-
-mass_fuel_req(Mass) ->
-    (Mass div 3) - 2.
+    mass_and_fuel_req(aoc:mass_fuel_req(FuelReq), Total + FuelReq).
 
 input() ->
     read_masses().
@@ -69,14 +66,8 @@ read_masses() ->
     ThisDirectory = filename:dirname(escript:script_name()),
     Input = filename:join([ThisDirectory, "input.txt"]),
     io:format("opening ~s~n", [Input]),
-    {'ok', IODevice} = file:open(Input, ['read']),
-    read_masses(IODevice, file:read_line(IODevice), []).
+    aoc:read_masses(Input).
 
-read_masses(IODevice, 'eof', Masses) ->
-    file:close(IODevice),
-    Masses;
-read_masses(IODevice, {'ok', Line}, Masses) ->
-    read_masses(IODevice, file:read_line(IODevice), [list_to_integer(Line -- [$\n]) | Masses]).
 
 %% test_input() ->
 %%     [12, 14, 1969, 100756]. %% 2 + 2 + 654 + 33583 = 34241 fuel

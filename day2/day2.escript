@@ -1,5 +1,5 @@
 #!/usr/bin/env escript
-%%! +A2
+%%! +A2 -pa ../lib/aoc/_build/default/lib/aoc/ebin
 %% -*- coding: utf-8 -*-
 
 %% --- Day 2: 1202 Program Alarm ---
@@ -103,52 +103,19 @@
 
 main(_) ->
     Intcode = read_intcode(),
-    io:format("start intcode: ~s~n", [intcode_to_binary(Intcode)]),
-    HaltValue = process_intcode(0, Intcode),
+    io:format("start intcode: ~s~n", [aoc:intcode_to_binary(Intcode)]),
+    HaltValue = aoc:run_intcode(Intcode),
     io:format("halting with ~p~n", [HaltValue]).
-
-process_intcode(Position, Intcode) ->
-    Opcode = maps:get(Position, Intcode),
-    process_opcode(Position, Intcode, Opcode).
-
-process_opcode(_Position, #{0 := Final}=Intcode, 99) ->
-    io:format("final intcode: ~s~n", [intcode_to_binary(Intcode)]),
-    Final;
-process_opcode(Position, Intcode, 1) ->
-    NewIntcode = sum(Position, Intcode),
-    step(Position, NewIntcode);
-process_opcode(Position, Intcode, 2) ->
-    NewIntcode = multiply(Position, Intcode),
-    step(Position, NewIntcode).
-
-step(Position, Intcode) ->
-    process_intcode(Position+4, Intcode).
-
-sum(Position, Intcode) ->
-    process_operands(Position, Intcode, fun erlang:'+'/2).
-
-multiply(Position, Intcode) ->
-    process_operands(Position, Intcode, fun erlang:'*'/2).
-
-process_operands(Position, Intcode, Applier) ->
-    FirstPosition = maps:get(Position+1, Intcode),
-    SecondPosition = maps:get(Position+2, Intcode),
-    StoragePosition = maps:get(Position+3, Intcode),
-
-    FirstOperand = maps:get(FirstPosition, Intcode),
-    SecondOperand = maps:get(SecondPosition, Intcode),
-    Result = Applier(FirstOperand, SecondOperand),
-
-    maps:put(StoragePosition, Result, Intcode).
 
 read_intcode() ->
     Contents = read_input(),
-    Intcode = binary_to_intcode(Contents),
+    Intcode = aoc:binary_to_intcode(Contents),
     reset_intcode(Intcode). %% NOTE: only necessary on the real input, remove for test inputs
 
 reset_intcode(Intcode) ->
-    Intcode1 = maps:put(1, 12, Intcode),
-    maps:put(2, 2, Intcode1).
+    Intcode#{1 => 12
+            ,2 => 2
+            }.
 
 read_input() ->
     ThisDirectory = filename:dirname(escript:script_name()),
@@ -156,15 +123,6 @@ read_input() ->
     {'ok', Contents} = file:read_file(Input),
     binary:replace(Contents, <<"\n">>, <<>>).
 
-%% should take <<"a,b,c">> and create #{0=>a,1=>b,2=>c}
-binary_to_intcode(Contents) ->
-    Opcodes = binary:split(Contents, <<",">>, ['global']),
-    Count = length(Opcodes),
-    maps:from_list(lists:zip(lists:seq(0, Count-1), lists:map(fun binary_to_integer/1, Opcodes))).
-
-intcode_to_binary(Intcode) ->
-    {_Indicies, Opcodes} = lists:unzip(lists:keysort(1, maps:to_list(Intcode))),
-    list_to_binary(lists:join(<<",">>, [integer_to_binary(I) || I <- Opcodes])).
 
 %% test_input() ->
 %% <<"1,9,10,3,2,3,11,0,99,30,40,50">>. %% halts with 3500
