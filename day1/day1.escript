@@ -40,7 +40,6 @@
 %% What is the sum of the fuel requirements for all of the modules on
 %% your spacecraft?
 
-
 -mode('compile').
 
 -export([main/1]).
