@@ -1,4 +1,4 @@
--module(day_01).
+-module(day1).
 -export([calc_fuel_for_modules/0, calc_total_fuel/0]).
 
 read_input(FileName) ->
@@ -27,10 +27,9 @@ calc_total_fuel_for_module(X) ->
     ModuleFuel + FuelForFuel.
 
 calc_fuel_for_modules() ->
-    Input = process_input(read_input("day_01.input")),
+    Input = process_input(read_input("day1.input")),
     lists:sum([ calc_module_fuel(X) || X <- Input]).
 
 calc_total_fuel() ->
-    Input = process_input(read_input("day_01.input")),
+    Input = process_input(read_input("day1.input")),
     lists:sum([ calc_total_fuel_for_module(X) || X <- Input]).
-

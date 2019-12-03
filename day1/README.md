@@ -13,6 +13,6 @@ Solution for Advent of Code 2019 - Day 1 Problems 1 & 2
 
 ## How to run
 
-1. Complete day1.erl
+1. Compile day1.erl
 2. Solution to problem 1 `day1:calc_fuel_for_modules().`
 3. Solution to problem 2 `day1:calc_total_fuel().`
