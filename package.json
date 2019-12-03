@@ -1,0 +1,24 @@
+{
+  "name": "advent-of-code",
+  "version": "1.0.0",
+  "description": "Check out https://adventofcode.com/ and submit your solutions to the days' problems here.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --watchAll --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2600hz/advent-of-code.git"
+  },
+  "keywords": [],
+  "author": "Joris Tirado",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/2600hz/advent-of-code/issues"
+  },
+  "type": "module",
+  "homepage": "https://github.com/2600hz/advent-of-code#readme",
+  "devDependencies": {
+    "jest": "^24.9.0"
+  }
+}
