@@ -1,0 +1,6 @@
+{
+    "MsBuild":
+    {
+	    "UseLegacySdkResolver": true
+    }
+}
