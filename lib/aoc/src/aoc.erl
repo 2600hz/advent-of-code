@@ -11,6 +11,9 @@
         ,run_intcode/1
         ]).
 
+%% Day 3 helpers
+-export([manhattan_distance/2]).
+
 -define(INTCODE_HALT, 99).
 -define(INTCODE_SUM, 1).
 -define(INTCODE_MULT, 2).
@@ -73,3 +76,6 @@ process_instruction(InstructionPointer, Intcode, Applier) ->
     Result = Applier(FirstOperand, SecondOperand),
 
     maps:put(StoragePointer, Result, Intcode).
+
+manhattan_distance({X1, Y1}, {X2, Y2}) ->
+    abs(X1 - X2) + abs(Y1 - Y2).
