@@ -20,6 +20,10 @@
 -define(INTCODE_MULT, 2).
 -define(INTCODE_INPUT, 3).
 -define(INTCODE_OUTPUT, 4).
+-define(INTCODE_IF_TRUE, 5).
+-define(INTCODE_IF_FALSE, 6).
+-define(INTCODE_LESS_THAN, 7).
+-define(INTCODE_EQUAL_TO, 8).
 
 -define(MODE_POSITION, 0).
 -define(MODE_IMMEDIATE, 1).
@@ -93,7 +97,11 @@ pp_opcode(?INTCODE_SUM)    -> <<"sum">>;
 pp_opcode(?INTCODE_MULT)   -> <<"mult">>;
 pp_opcode(?INTCODE_INPUT)  -> <<"input">>;
 pp_opcode(?INTCODE_OUTPUT) -> <<"output">>;
-pp_opcode(?INTCODE_HALT)   -> <<"halt">>.
+pp_opcode(?INTCODE_HALT)   -> <<"halt">>;
+pp_opcode(?INTCODE_IF_TRUE) -> <<"is_true">>;
+pp_opcode(?INTCODE_IF_FALSE) -> <<"is_false">>;
+pp_opcode(?INTCODE_LESS_THAN) -> <<"less_than">>;
+pp_opcode(?INTCODE_EQUAL_TO) -> <<"equals">>.
 
 %% ParameterModes = [$0 | $1] in right->left order
 %% pads end of list with $0 to get full length of parameters for opcode
@@ -105,7 +113,15 @@ opcode_parameter_modes(?INTCODE_MULT, ParameterModes) ->
 opcode_parameter_modes(?INTCODE_INPUT, ParameterModes) ->
     parameter_modes(ParameterModes, 1);
 opcode_parameter_modes(?INTCODE_OUTPUT, ParameterModes) ->
-    parameter_modes(ParameterModes, 1).
+    parameter_modes(ParameterModes, 1);
+opcode_parameter_modes(?INTCODE_IF_TRUE, ParameterModes) ->
+    parameter_modes(ParameterModes, 2);
+opcode_parameter_modes(?INTCODE_IF_FALSE, ParameterModes) ->
+    parameter_modes(ParameterModes, 2);
+opcode_parameter_modes(?INTCODE_LESS_THAN, ParameterModes) ->
+    parameter_modes(ParameterModes, 3);
+opcode_parameter_modes(?INTCODE_EQUAL_TO, ParameterModes) ->
+    parameter_modes(ParameterModes, 3).
 
 parameter_modes(ParameterModes, Parameters) ->
     [Char-$0 || Char <- lists:flatten(string:pad(ParameterModes, Parameters, 'trailing', $0))].
@@ -131,7 +147,15 @@ process_opcode(InstructionPointer, Intcode, {?INTCODE_MULT, ParameterModes}) ->
 process_opcode(InstructionPointer, Intcode, {?INTCODE_INPUT, ParameterModes}) ->
     input(InstructionPointer, Intcode, ParameterModes);
 process_opcode(InstructionPointer, Intcode, {?INTCODE_OUTPUT, ParameterModes}) ->
-    output(InstructionPointer, Intcode, ParameterModes).
+    output(InstructionPointer, Intcode, ParameterModes);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_IF_TRUE, ParameterModes}) ->
+    if_true(InstructionPointer, Intcode, ParameterModes);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_IF_FALSE, ParameterModes}) ->
+    if_false(InstructionPointer, Intcode, ParameterModes);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_LESS_THAN, ParameterModes}) ->
+    less_than(InstructionPointer, Intcode, ParameterModes);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_EQUAL_TO, ParameterModes}) ->
+    equal_to(InstructionPointer, Intcode, ParameterModes).
 
 step(InstructionPointer, Parameters, Intcode) ->
     run_intcode(InstructionPointer+Parameters, Intcode).
@@ -150,9 +174,6 @@ input(InstructionPointer, Intcode, [_ParameterMode]) ->
     NewIntcode = store(StoragePointer, list_to_integer(InputChars, 10), Intcode),
     %% io:format('standard_io', "    put ~p to ~p~n", [InputChars, StoragePointer]),
     step(InstructionPointer, 2, NewIntcode).
-
-store(StoragePointer, Value, #{'program' := Program}=Intcode) ->
-    Intcode#{'program' => maps:put(StoragePointer, Value, Program)}.
 
 output(InstructionPointer, #{'output_fun' := OutputFun}=Intcode, [_ParameterMode]) ->
     StoragePointer = parameter(InstructionPointer, 1, Intcode),
@@ -174,6 +195,62 @@ process_instruction(InstructionPointer, Intcode, [FirstMode, SecondMode, _ThirdM
     %%          ,[StoragePointer, Result, Applier, FirstOperand, FirstParameter, SecondOperand, SecondParameter]
     %%          ),
     store(StoragePointer, Result, Intcode).
+
+store(StoragePointer, Value, #{'program' := Program}=Intcode) ->
+    Intcode#{'program' => maps:put(StoragePointer, Value, Program)}.
+
+if_true(InstructionPointer, Intcode, [FirstMode, SecondMode]) ->
+    FirstParameter = parameter(InstructionPointer, 1, Intcode),
+    case parameter_value(FirstParameter, FirstMode, Intcode) of
+        0 -> step(InstructionPointer, 3, Intcode);
+        _NonZero ->
+            SecondParameter = parameter(InstructionPointer, 2, Intcode),
+            JumpTo = parameter_value(SecondParameter, SecondMode, Intcode),
+            step(JumpTo, 0, Intcode)
+    end.
+
+if_false(InstructionPointer, Intcode, [FirstMode, SecondMode]) ->
+    FirstParameter = parameter(InstructionPointer, 1, Intcode),
+    case parameter_value(FirstParameter, FirstMode, Intcode) of
+        0 ->
+            SecondParameter = parameter(InstructionPointer, 2, Intcode),
+            JumpTo = parameter_value(SecondParameter, SecondMode, Intcode),
+            step(JumpTo, 0, Intcode);
+        _NonZero ->
+            step(InstructionPointer, 3, Intcode)
+    end.
+
+less_than(InstructionPointer, Intcode, [FirstMode, SecondMode, _ThirdMode]) ->
+    FirstParameter = parameter(InstructionPointer, 1, Intcode),
+    SecondParameter = parameter(InstructionPointer, 2, Intcode),
+    StoragePosition = parameter(InstructionPointer, 3, Intcode),
+
+    NewIntcode =
+        case parameter_value(FirstParameter, FirstMode, Intcode)
+            < parameter_value(SecondParameter, SecondMode, Intcode)
+        of
+            'true' ->
+                store(StoragePosition, 1, Intcode);
+            'false' ->
+                store(StoragePosition, 0, Intcode)
+        end,
+    step(InstructionPointer, 4, NewIntcode).
+
+equal_to(InstructionPointer, Intcode, [FirstMode, SecondMode, _ThirdMode]) ->
+    FirstParameter = parameter(InstructionPointer, 1, Intcode),
+    SecondParameter = parameter(InstructionPointer, 2, Intcode),
+    StoragePosition = parameter(InstructionPointer, 3, Intcode),
+
+    NewIntcode =
+        case parameter_value(FirstParameter, FirstMode, Intcode)
+            == parameter_value(SecondParameter, SecondMode, Intcode)
+        of
+            'true' ->
+                store(StoragePosition, 1, Intcode);
+            'false' ->
+                store(StoragePosition, 0, Intcode)
+        end,
+    step(InstructionPointer, 4, NewIntcode).
 
 manhattan_distance({X1, Y1}, {X2, Y2}) ->
     abs(X1 - X2) + abs(Y1 - Y2).
