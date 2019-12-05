@@ -9,6 +9,7 @@
 -export([binary_to_intcode/1
         ,intcode_to_binary/1
         ,run_intcode/1
+        ,set_output_fun/2
         ]).
 
 %% Day 3 helpers
@@ -17,6 +18,17 @@
 -define(INTCODE_HALT, 99).
 -define(INTCODE_SUM, 1).
 -define(INTCODE_MULT, 2).
+-define(INTCODE_INPUT, 3).
+-define(INTCODE_OUTPUT, 4).
+
+-define(MODE_POSITION, 0).
+-define(MODE_IMMEDIATE, 1).
+
+-type output_fun() :: fun((any(), intcode_program()) -> 'ok').
+
+-type intcode_program() :: #{'program' => #{non_neg_integer() => integer()}
+                            ,'output_fun' => output_fun()
+                            }.
 
 mass_fuel_req(Mass) ->
     (Mass div 3) - 2.
@@ -32,50 +44,136 @@ read_masses(IODevice, {'ok', Line}, Masses) ->
     read_masses(IODevice, file:read_line(IODevice), [list_to_integer(Line -- [$\n]) | Masses]).
 
 %% should take <<"a,b,c">> and create #{0=>a,1=>b,2=>c}
+-spec binary_to_intcode(binary()) -> intcode_program().
 binary_to_intcode(Contents) ->
     Opcodes = binary:split(Contents, <<",">>, ['global']),
     Count = length(Opcodes),
-    maps:from_list(lists:zip(lists:seq(0, Count-1), lists:map(fun binary_to_integer/1, Opcodes))).
+    #{'program' => maps:from_list(lists:zip(lists:seq(0, Count-1), lists:map(fun binary_to_integer/1, Opcodes)))
+     ,'output_fun' => fun(Value, _Intcode) -> io:format('standard_io', "~p~n", [Value]) end
+     }.
 
-intcode_to_binary(Intcode) ->
+-spec intcode_to_binary(intcode_program()) -> binary().
+intcode_to_binary(#{'program' := Intcode}) ->
     {_Indicies, Opcodes} = lists:unzip(lists:keysort(1, maps:to_list(Intcode))),
     list_to_binary(lists:join(<<",">>, [integer_to_binary(I) || I <- Opcodes])).
 
+-spec set_output_fun(intcode_program(), output_fun()) -> intcode_program().
+set_output_fun(Intcode, OutputFun) ->
+    Intcode#{'output_fun' => OutputFun}.
+
+-spec run_intcode(intcode_program()) -> integer().
 run_intcode(Intcode) ->
     run_intcode(0, Intcode).
 
+-spec run_intcode(non_neg_integer(), intcode_program()) -> integer().
 run_intcode(InstructionPointer, Intcode) ->
-    Opcode = maps:get(InstructionPointer, Intcode),
+    Opcode = opcode(InstructionPointer, Intcode),
     process_opcode(InstructionPointer, Intcode, Opcode).
 
-process_opcode(_InstructionPointer, #{0 := Final}, ?INTCODE_HALT) ->
-    Final;
-process_opcode(InstructionPointer, Intcode, ?INTCODE_SUM) ->
-    sum(InstructionPointer, Intcode);
-process_opcode(InstructionPointer, Intcode, ?INTCODE_MULT) ->
-    multiply(InstructionPointer, Intcode).
+-spec opcode(non_neg_integer(), intcode_program()) ->
+          {pos_integer(), [0|1]}.
+opcode(InstructionPointer, Intcode) ->
+    %% io:format("  ~p: ", [InstructionPointer]),
+    OpcodePlusParameterModes = parameter_value(InstructionPointer, ?MODE_POSITION, Intcode),
+    decode_opcode(integer_to_list(OpcodePlusParameterModes)).
+
+decode_opcode([_]=LegacyOpcode) ->
+    Opcode = list_to_integer(LegacyOpcode, 10),
+    Modes = opcode_parameter_modes(Opcode, []),
+    %% io:format('standard_io', "LOP ~5.s -> ~6.s modes: ~p~n", [LegacyOpcode, pp_opcode(Opcode), Modes]),
+    {Opcode, Modes};
+decode_opcode(OpcodePlusParameterModes) ->
+    [Bottom, Top | ParameterModes] = lists:reverse(OpcodePlusParameterModes),
+    Opcode = list_to_integer([Top, Bottom], 10),
+    Modes = opcode_parameter_modes(Opcode, ParameterModes),
+    %% io:format('standard_io', "OP ~5.s -> ~6.s modes: ~p~n", [OpcodePlusParameterModes, pp_opcode(Opcode), Modes]),
+    {Opcode, Modes}.
+
+pp_opcode(?INTCODE_SUM)    -> <<"sum">>;
+pp_opcode(?INTCODE_MULT)   -> <<"mult">>;
+pp_opcode(?INTCODE_INPUT)  -> <<"input">>;
+pp_opcode(?INTCODE_OUTPUT) -> <<"output">>;
+pp_opcode(?INTCODE_HALT)   -> <<"halt">>.
+
+%% ParameterModes = [$0 | $1] in right->left order
+%% pads end of list with $0 to get full length of parameters for opcode
+opcode_parameter_modes(?INTCODE_HALT, []) -> [];
+opcode_parameter_modes(?INTCODE_SUM, ParameterModes) ->
+    parameter_modes(ParameterModes, 3);
+opcode_parameter_modes(?INTCODE_MULT, ParameterModes) ->
+    parameter_modes(ParameterModes, 3);
+opcode_parameter_modes(?INTCODE_INPUT, ParameterModes) ->
+    parameter_modes(ParameterModes, 1);
+opcode_parameter_modes(?INTCODE_OUTPUT, ParameterModes) ->
+    parameter_modes(ParameterModes, 1).
+
+parameter_modes(ParameterModes, Parameters) ->
+    [Char-$0 || Char <- lists:flatten(string:pad(ParameterModes, Parameters, 'trailing', $0))].
+
+parameter(InstructionPointer, Position, #{'program' := Intcode}) ->
+    maps:get(InstructionPointer+Position, Intcode).
+
+parameter_value(Parameter, ?MODE_POSITION, #{'program' := Intcode}) ->
+    Value = maps:get(Parameter, Intcode),
+    %% io:format('standard_io', "    looking up value at position ~p: ~p~n", [Parameter, Value]),
+    Value;
+parameter_value(Parameter, ?MODE_IMMEDIATE, _Intcode) ->
+    %% io:format('standard_io', "    using ~p as value in immediate mode~n", [Parameter]),
+    Parameter.
+
+process_opcode(_InstructionPointer, Intcode, {?INTCODE_HALT, _Modes}) ->
+    %% io:format('standard_io', "halting at ~p~n", [intcode_to_binary(Intcode)]),
+    parameter_value(0, ?MODE_POSITION, Intcode);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_SUM, ParameterModes}) ->
+    sum(InstructionPointer, Intcode, ParameterModes);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_MULT, ParameterModes}) ->
+    multiply(InstructionPointer, Intcode, ParameterModes);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_INPUT, ParameterModes}) ->
+    input(InstructionPointer, Intcode, ParameterModes);
+process_opcode(InstructionPointer, Intcode, {?INTCODE_OUTPUT, ParameterModes}) ->
+    output(InstructionPointer, Intcode, ParameterModes).
 
 step(InstructionPointer, Parameters, Intcode) ->
     run_intcode(InstructionPointer+Parameters, Intcode).
 
-sum(InstructionPointer, Intcode) ->
-    NewIntcode = process_instruction(InstructionPointer, Intcode, fun erlang:'+'/2),
+sum(InstructionPointer, Intcode, ParameterModes) ->
+    NewIntcode = process_instruction(InstructionPointer, Intcode, ParameterModes, fun erlang:'+'/2),
     step(InstructionPointer, 4, NewIntcode).
 
-multiply(InstructionPointer, Intcode) ->
-    NewIntcode = process_instruction(InstructionPointer, Intcode, fun erlang:'*'/2),
+multiply(InstructionPointer, Intcode, ParameterModes) ->
+    NewIntcode = process_instruction(InstructionPointer, Intcode, ParameterModes, fun erlang:'*'/2),
     step(InstructionPointer, 4, NewIntcode).
 
-process_instruction(InstructionPointer, Intcode, Applier) ->
-    FirstParameter = maps:get(InstructionPointer+1, Intcode),
-    SecondParameter = maps:get(InstructionPointer+2, Intcode),
-    StoragePointer = maps:get(InstructionPointer+3, Intcode),
+input(InstructionPointer, Intcode, [_ParameterMode]) ->
+    StoragePointer = parameter(InstructionPointer, 1, Intcode),
+    InputChars = io:get_chars("enter system ID: ", 1),
+    NewIntcode = store(StoragePointer, list_to_integer(InputChars, 10), Intcode),
+    %% io:format('standard_io', "    put ~p to ~p~n", [InputChars, StoragePointer]),
+    step(InstructionPointer, 2, NewIntcode).
 
-    FirstOperand = maps:get(FirstParameter, Intcode),
-    SecondOperand = maps:get(SecondParameter, Intcode),
+store(StoragePointer, Value, #{'program' := Program}=Intcode) ->
+    Intcode#{'program' => maps:put(StoragePointer, Value, Program)}.
+
+output(InstructionPointer, #{'output_fun' := OutputFun}=Intcode, [_ParameterMode]) ->
+    StoragePointer = parameter(InstructionPointer, 1, Intcode),
+    Value = parameter_value(StoragePointer, ?MODE_POSITION, Intcode),
+    OutputFun(Value, Intcode),
+    step(InstructionPointer, 2, Intcode).
+
+process_instruction(InstructionPointer, Intcode, [FirstMode, SecondMode, _ThirdMode], Applier) ->
+    FirstParameter = parameter(InstructionPointer, 1, Intcode),
+    SecondParameter = parameter(InstructionPointer, 2, Intcode),
+    StoragePointer = parameter(InstructionPointer, 3, Intcode),
+
+    FirstOperand = parameter_value(FirstParameter, FirstMode, Intcode),
+    SecondOperand = parameter_value(SecondParameter, SecondMode, Intcode),
     Result = Applier(FirstOperand, SecondOperand),
 
-    maps:put(StoragePointer, Result, Intcode).
+    %% io:format('standard_io'
+    %%          ,"    store ~4.w: ~8.w (~p ~8.w(~5.w) ~8.w(~5.w))~n"
+    %%          ,[StoragePointer, Result, Applier, FirstOperand, FirstParameter, SecondOperand, SecondParameter]
+    %%          ),
+    store(StoragePointer, Result, Intcode).
 
 manhattan_distance({X1, Y1}, {X2, Y2}) ->
     abs(X1 - X2) + abs(Y1 - Y2).
