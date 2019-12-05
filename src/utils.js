@@ -43,11 +43,20 @@ export const parseLines = a => a.replace(/\n/gm, ',')
 // :: String -> String
 export const lineToList = a => a.split(',');
 
-// :: [a] -> Number
+// :: [a] -> [Number]
 export const listOfNumbers = a => a.map(Number);
 
 // :: (Number, Number) -> Number
-const sum = (a, b) => a + b;
+export const sum = (a, b) => a + b;
 
 // :: [Number] -> Number
 export const sumUp = a => a.reduce(sum);
+
+// :: (Number, Number) -> Number
+export const multiply = (a, b) => a * b;
+
+// :: [a] -> a
+export const head = a => a[0];
+
+// :: Object -> (a -> b)
+export const objectPropGetter = a => b => ({...a})[b];
