@@ -1,12 +1,5 @@
-import {
-  pipe,
-  getDataFromInput,
-  sum,
-  multiply,
-  head,
-  objectPropGetter
-} from '../utils.js';
-import { normalizeData, intcodeToStateRestorer } from './helpers.js'
+import { pipe, getDataFromInput, head } from '../utils.js';
+import { normalizeData, intcodeToStateRestorer, interpretIntcode } from './helpers.js'
 
 /**
  * --- Day 2: 1202 Program Alarm ---
@@ -86,59 +79,6 @@ import { normalizeData, intcodeToStateRestorer } from './helpers.js'
 
 // :: [a] -> [a]
 const restoreTo1202ProgramAlarmState = intcodeToStateRestorer({ 1: 12, 2: 2});
-
-// :: a => a
-const extractInstructionParameters = ({intcode, index}) => ({
-  intcode,
-  index,
-  first: intcode[index + 1],
-  second: intcode[index + 2],
-  third: intcode[index + 3]
-});
-
-// :: a => a
-const resolveInstructionValues = ({intcode, index, first, second, third}) => ({
-  opcode: intcode[index],
-  left: intcode[first],
-  right: intcode[second],
-  store: third
-});
-
-// :: Object => b
-const getOperationByOpcode = objectPropGetter({ 1: sum, 2: multiply });
-
-// :: a => a
-const performOperation = ({opcode, left, right}) => getOperationByOpcode(opcode)(left, right);
-
-// :: a => a
-const processOpcode = ({store, ...rest}) => ({ store, result: performOperation(rest) });
-
-// :: a => Promise(a)
-const computeInstruction = pipe(
-  extractInstructionParameters,
-  resolveInstructionValues,
-  processOpcode
-);
-
-// :: [Number] -> Promise([Number])
-const interpretIntcode = intcode => new Promise(async (resolve, reject) => {
-  const newIntcode = [...intcode];
-  let i = 0;
-  let store;
-  let result;
-
-  while (newIntcode[i] !== 99) {
-    try {
-      ({store, result} = await computeInstruction({ intcode: newIntcode, index: i }));
-    } catch (e) {
-      return reject(new Error(`Unknown opcode ${newIntcode[i]} at index ${i}`));
-    }
-    newIntcode.splice(store, 1, result);
-    i += 4;
-  }
-
-  return resolve(newIntcode);
-});
 
 // :: String -> Promise(a)
 const computer = pipe(

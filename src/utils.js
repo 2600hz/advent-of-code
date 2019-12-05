@@ -56,7 +56,7 @@ export const sumUp = a => a.reduce(sum);
 export const multiply = (a, b) => a * b;
 
 // :: [a] -> a
-export const head = a => a[0];
+export const head = ([a]) => a;
 
 // :: Object -> (a -> b)
 export const objectPropGetter = a => b => ({...a})[b];
