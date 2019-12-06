@@ -60,3 +60,5 @@ export const head = ([a]) => a;
 
 // :: Object -> (a -> b)
 export const objectPropGetter = a => b => ({...a})[b];
+
+export const manathanDistance = ([x1, y1], [x2, y2]) => Math.abs(x1 - x2) + Math.abs(y1 - y2);

@@ -1,4 +1,5 @@
-import { pipe, getDataFromInput } from '../utils.js';
+import { pipe, manathanDistance } from '../utils.js';
+import { readWirePaths, nextPoint, wirePathsToPointsGenerator, intersects } from './helpers.js';
 
 /**
  * --- Day 3: Crossed Wires ---
@@ -56,33 +57,6 @@ import { pipe, getDataFromInput } from '../utils.js';
  * What is the Manhattan distance from the central port to the closest intersection?
  */
 
-const matchPairItems = string => [...string.matchAll(/(\D)(\d+)/)];
-
-const formatPair = string => {
-  let [[, direction, distance]] = matchPairItems(string);
-  return [direction.toLowerCase(), Number(distance)];
-};
-
-const dataToWirePaths = pipe(
-  a => a.split(/\n/gm),
-  a => a.map(line => line.
-    split(',').
-    map(formatPair)
-  )
-);
-
-const readWirePaths = pipe(
-  getDataFromInput,
-  dataToWirePaths
-);
-
-const nextPoint = (direction, [x, y]) => ({
-  r: (x, y) => [x + 1, y],
-  l: (x, y) => [x - 1, y],
-  u: (x, y) => [x, y + 1],
-  d: (x, y) => [x, y - 1]
-})[direction](x, y);
-
 const addPoints = function addPoints(...[direction, distance, current, points = []]) {
   if (!distance) return [current, points];
   const next = nextPoint(direction, current);
@@ -94,17 +68,13 @@ const wirePathToPoints = function wirePathToPoints(...[wirePath, current = [0, 0
   if (!wirePath.length) return points;
   const [[direction, distance]] = wirePath;
   const [next, newPoints] = addPoints(direction, distance, current, points);
-  return wirePathToPoints(wirePath.splice(1), next, newPoints);
+  return wirePathToPoints([...wirePath].slice(1), next, [...newPoints]);
 };
 
-const wirePathsToPoints = ([wire1, wire2]) => [wirePathToPoints(wire1), wirePathToPoints(wire2)];
-
-const intersects = ([x1, y1]) => ([x2, y2]) => x1 === x2 && y1 === y2;
+const wirePathsToPoints = wirePathsToPointsGenerator(wirePathToPoints);
 
 const resolveIntersections = ([wire1Points, wire2Points]) =>
   wire1Points.filter(point1 => wire2Points.find(intersects(point1)));
-
-const manathanDistance = ([x1, y1], [x2, y2]) => Math.abs(x1 - x2) + Math.abs(y1 - y2);
 
 const findClosestIntersection = intersections =>
   intersections.reduce((acc, point) =>
