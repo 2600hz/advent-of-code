@@ -1,9 +1,8 @@
-import { pipe, parseLines, lineToList, listOfNumbers } from '../utils.js';
+import { pipe, parseLines, listOfNumbers } from '../utils.js';
 
 // :: String -> [Numbers]
 export const normalizeData = pipe(
   parseLines,
-  lineToList,
   listOfNumbers
 );
 

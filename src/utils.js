@@ -37,10 +37,10 @@ export const getDataFromInput = pipe(
   getDataFromFile
 );
 
-// :: String -> String
-export const parseLines = a => a.replace(/\n/gm, ',')
+// :: String -> [String]
+export const parseLines = a => a.split(/\n/gm);
 
-// :: String -> String
+// :: String -> [String]
 export const lineToList = a => a.split(',');
 
 // :: [a] -> [Number]
