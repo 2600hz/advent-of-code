@@ -1,5 +1,5 @@
 import {
-  pipe,
+  pipePromise,
   lineToList,
   listOfNumbers,
   sum,
@@ -8,7 +8,7 @@ import {
 } from '../utils.js';
 
 // :: String -> [Number]
-export const normalizeData = pipe(
+export const normalizeData = pipePromise(
   lineToList,
   listOfNumbers
 );
@@ -43,7 +43,7 @@ const performOperation = ({opcode, left, right}) => getOperationByOpcode(opcode)
 const processOpcode = ({store, ...rest}) => ({ store, result: performOperation(rest) });
 
 // :: a => Promise(a)
-const computeInstruction = pipe(
+const computeInstruction = pipePromise(
   extractInstructionParameters,
   resolveInstructionValues,
   processOpcode

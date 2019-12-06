@@ -11,14 +11,17 @@ const readFilePromise = (a, b = 'utf-8') => new Promise((resolve, reject) =>
 // :: (String, String | Object) -> Promise
 export const getDataFromFile = async (a, b) => await readFilePromise(a, b);
 
-// :: (...Function) -> (a -> b)
-export const pipe = (...a) => b => a.reduce((c, d) => c.then(d), Promise.resolve(b));
+// :: ...Function -> (a -> b)
+export const pipe = (...a) => b => a.reduce((c, d) => d(c), b);
+
+// :: (...Function) -> (a -> Promise(b))
+export const pipePromise = (...a) => b => a.reduce((c, d) => c.then(d), Promise.resolve(b));
 
 // :: String -> (String -> String)
 const buildPathToFileName = a => b => path.join(b, a);
 
 // :: URL | String -> String
-const resolvePathToDir = pipe(
+const resolvePathToDir = pipePromise(
   fileURLToPath,
   dirname
 );
@@ -27,12 +30,12 @@ const resolvePathToDir = pipe(
 const buildPathToInput = buildPathToFileName('input.txt');
 
 // :: URL | String -> String
-export const resolvePathToInputFile = pipe(
+export const resolvePathToInputFile = pipePromise(
   resolvePathToDir,
   buildPathToInput
 );
 
-export const getDataFromInput = pipe(
+export const getDataFromInput = pipePromise(
   resolvePathToInputFile,
   getDataFromFile
 );
@@ -61,4 +64,14 @@ export const head = ([a]) => a;
 // :: Object -> (a -> b)
 export const objectPropGetter = a => b => ({...a})[b];
 
-export const manathanDistance = ([x1, y1], [x2, y2]) => Math.abs(x1 - x2) + Math.abs(y1 - y2);
+// :: ([Number], [Number]) -> Number
+export const manathanDistance = ([a, b], [c, d]) => Math.abs(a - c) + Math.abs(b - d);
+
+// :: Array -> Number
+export const length = a => a.length;
+
+// :: a -> [String]
+export const primitiveToArray = a => [...('' + a)];
+
+// :: ...Function -> (a -> Boolean)
+export const strictFunctionsEnforcer = (...a) => b => a.every(c => c(b));

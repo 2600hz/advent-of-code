@@ -1,7 +1,7 @@
-import { pipe, parseLines, listOfNumbers } from '../utils.js';
+import { pipePromise, parseLines, listOfNumbers } from '../utils.js';
 
 // :: String -> [Numbers]
-export const normalizeData = pipe(
+export const normalizeData = pipePromise(
   parseLines,
   listOfNumbers
 );

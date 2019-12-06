@@ -1,4 +1,4 @@
-import { pipe, manathanDistance } from '../utils.js';
+import { pipePromise, manathanDistance } from '../utils.js';
 import { readWirePaths, nextPoint, wirePathsToPointsGenerator, intersects } from './helpers.js';
 
 /**
@@ -81,7 +81,7 @@ const findClosestIntersection = intersections =>
     manathanDistance([0, 0], point) < acc ? manathanDistance([0, 0], point) : acc, Infinity);
 
 // :: String -> Promise(Number)
-const intersection = pipe(
+const intersection = pipePromise(
   readWirePaths,
   wirePathsToPoints,
   resolveIntersections,

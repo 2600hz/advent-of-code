@@ -1,4 +1,4 @@
-import { pipe, getDataFromInput, head } from '../utils.js';
+import { pipePromise, getDataFromInput, head } from '../utils.js';
 import { normalizeData, interpretIntcode } from './helpers.js';
 
 /**
@@ -47,7 +47,7 @@ import { normalizeData, interpretIntcode } from './helpers.js';
 const injectPairToIntcode = ({intcode, pair}) =>
   [...intcode.slice(0, 1), ...pair, ...[...intcode].splice(3)];
 
-const produceOutputForPair = pipe(
+const produceOutputForPair = pipePromise(
   injectPairToIntcode,
   interpretIntcode,
   head
@@ -70,7 +70,7 @@ const findPair = pairFinderForOutput(19690720);
 // :: [a] -> Number
 const computeAnswer = ([noun, verb]) => 100 * noun + verb;
 
-const computer = pipe(
+const computer = pipePromise(
   getDataFromInput,
   normalizeData,
   findPair,

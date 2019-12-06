@@ -1,4 +1,4 @@
-import { pipe, getDataFromInput } from '../utils.js';
+import { pipePromise, getDataFromInput } from '../utils.js';
 
 const matchPairItems = string => [...string.matchAll(/(\D)(\d+)/)];
 
@@ -7,7 +7,7 @@ const formatPair = string => {
   return [direction.toLowerCase(), Number(distance)];
 };
 
-export const dataToWirePaths = pipe(
+export const dataToWirePaths = pipePromise(
   a => a.split(/\n/gm),
   a => a.map(line => line.
     split(',').
@@ -15,7 +15,7 @@ export const dataToWirePaths = pipe(
   )
 );
 
-export const readWirePaths = pipe(
+export const readWirePaths = pipePromise(
   getDataFromInput,
   dataToWirePaths
 );

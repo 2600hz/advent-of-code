@@ -1,4 +1,4 @@
-import { pipe, getDataFromInput, head } from '../utils.js';
+import { pipePromise, getDataFromInput, head } from '../utils.js';
 import { normalizeData, intcodeToStateRestorer, interpretIntcode } from './helpers.js'
 
 /**
@@ -81,7 +81,7 @@ import { normalizeData, intcodeToStateRestorer, interpretIntcode } from './helpe
 const restoreTo1202ProgramAlarmState = intcodeToStateRestorer({ 1: 12, 2: 2});
 
 // :: String -> Promise(a)
-const computer = pipe(
+const computer = pipePromise(
   getDataFromInput,
   normalizeData,
   restoreTo1202ProgramAlarmState,

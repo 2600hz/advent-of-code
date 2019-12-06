@@ -1,4 +1,4 @@
-import { pipe, sum } from '../utils.js';
+import { pipePromise, sum } from '../utils.js';
 import { readWirePaths, nextPoint, wirePathsToPointsGenerator, intersects } from './helpers.js';
 
 /**
@@ -76,7 +76,7 @@ const findLeastSteps = intersections =>
   intersections.reduce((acc, [,, steps]) => acc > steps ? steps : acc, Infinity);
 
 // :: String -> Promise(Number)
-const intersection = pipe(
+const intersection = pipePromise(
   readWirePaths,
   wirePathsToPoints,
   resolveIntersections,

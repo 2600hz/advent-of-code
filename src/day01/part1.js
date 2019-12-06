@@ -1,5 +1,5 @@
 import {
-  pipe,
+  pipePromise,
   getDataFromInput,
   sumUp
 } from '../utils.js';
@@ -42,7 +42,7 @@ import { solveFuelForMass, normalizeData } from './helpers.js';
 const solveFuelForEachMass = a => a.map(solveFuelForMass);
 
 // :: String -> Promise
-const fuelCounterUpper = pipe(
+const fuelCounterUpper = pipePromise(
   getDataFromInput,
   normalizeData,
   solveFuelForEachMass,
