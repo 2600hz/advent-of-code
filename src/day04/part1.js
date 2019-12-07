@@ -1,12 +1,9 @@
 import {
-  pipe,
   pipePromise,
-  getDataFromInput,
   length,
-  primitiveToArray,
   strictFunctionsEnforcer,
-  listOfNumbers
 } from '../utils.js';
+import { getRange, criteriaMatcher } from './helpers.js';
 
 /**
  * --- Day 4: Secure Container ---
@@ -29,12 +26,6 @@ import {
  *
  * How many different passwords within the range given in your puzzle input meet these criteria?
  */
-
-// :: String -> Promise([Number])
-const getRange = pipePromise(
-  getDataFromInput,
-  data => data.split('-').map(Number)
-);
 
 // :: [Number] -> Boolean
 const noDecreasingDigit = digits => {
@@ -66,12 +57,7 @@ const enforceCriteria = strictFunctionsEnforcer(
   hasTwoIdenticallyAdjascentDigits
 );
 
-// :: Number -> Boolean
-const meetsCriteria = pipe(
-  primitiveToArray,
-  listOfNumbers,
-  enforceCriteria
-);
+const meetsCriteria = criteriaMatcher(enforceCriteria);
 
 // :: [Number] -> [Number]
 const generatePasswordsWithinRange = ([candidate, limit]) => {

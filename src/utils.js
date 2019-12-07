@@ -75,3 +75,6 @@ export const primitiveToArray = a => [...('' + a)];
 
 // :: ...Function -> (a -> Boolean)
 export const strictFunctionsEnforcer = (...a) => b => a.every(c => c(b));
+
+// :: ...a -> Boolean
+export const primitiveMatching = (...a) => a.every((b, c, [d]) => b === d);
