@@ -72,7 +72,7 @@ search_for_output(_Intcode, _Answer, 98, 99) ->
 search_for_output(Intcode, Answer, Noun, Verb) when Noun > 98 ->
     search_for_output(Intcode, Answer, 0, Verb+1);
 search_for_output(Intcode, Answer, Noun, Verb) ->
-    try aoc:run_intcode(replace(Intcode, Noun, Verb)) of
+    try intcode:run(replace(Intcode, Noun, Verb)) of
         Answer -> {Noun, Verb};
         _HaltValue ->
             search_for_output(Intcode, Answer, Noun+1, Verb)
@@ -89,7 +89,7 @@ replace(Intcode, Noun, Verb) ->
 
 read_intcode() ->
     Contents = read_input(),
-    aoc:binary_to_intcode(Contents).
+    intcode:from_binary(Contents).
 
 read_input() ->
     ThisDirectory = filename:dirname(escript:script_name()),

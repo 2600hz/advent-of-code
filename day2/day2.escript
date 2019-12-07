@@ -103,13 +103,13 @@
 
 main(_) ->
     Intcode = read_intcode(),
-    io:format("start intcode: ~s~n", [aoc:intcode_to_binary(Intcode)]),
-    HaltValue = aoc:run_intcode(Intcode),
+    io:format("start intcode: ~s~n", [intcode:to_binary(Intcode)]),
+    HaltValue = intcode:run(Intcode),
     io:format("halting with ~p~n", [HaltValue]).
 
 read_intcode() ->
     Contents = read_input(),
-    Intcode = aoc:binary_to_intcode(Contents),
+    Intcode = intcode:from_binary(Contents),
     reset_intcode(Intcode). %% NOTE: only necessary on the real input, remove for test inputs
 
 reset_intcode(Intcode) ->

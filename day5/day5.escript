@@ -118,7 +118,7 @@
 main(_) ->
     Intcode = read_intcode(),
     NewIntcode = aoc:set_output_fun(Intcode, fun output_fun/2),
-    Result = aoc:run_intcode(NewIntcode),
+    Result = intcode:run(NewIntcode),
     io:format("run: ~p~n", [Result]).
 
 output_fun(0, _Intcode) -> 'ok';
@@ -127,7 +127,7 @@ output_fun(Code, Intcode) ->
 
 read_intcode() ->
     Contents = read_input(),
-    aoc:binary_to_intcode(Contents).
+    intcode:from_binary(Contents).
 
 read_input() ->
     ThisDirectory = filename:dirname(escript:script_name()),
