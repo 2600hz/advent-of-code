@@ -1,5 +1,5 @@
 -module(day1).
--export([test/0]).
+-export([module_fuel_req/0, module_and_fuel_req/0]).
 
 read_input(InputFile) ->
     {'ok', IODevice} = file:open(InputFile, ['read']),
@@ -22,5 +22,8 @@ mass_and_fuel_req(Mass, Total) when Mass =< 0 ->
 mass_and_fuel_req(Mass, Total) ->
     mass_and_fuel_req(mass_fuel_req(Mass), Mass + Total).
 
-test() ->
+module_fuel_req() ->
+    lists:sum([ mass_fuel_req(Fuel) || Fuel <- read_input("day1.input")]).
+
+module_and_fuel_req() ->
     lists:sum([ mass_and_fuel_req(Fuel) || Fuel <- read_input("day1.input")]).
