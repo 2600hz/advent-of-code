@@ -1,5 +1,6 @@
 import { pipePromise, getDataFromInput, head } from '../utils.js';
-import { normalizeData, interpretIntcode } from './helpers.js';
+import { normalizeData } from './helpers.js';
+import interpretIntcode from '../lib/intcodeInterpreter.js'
 
 /**
  * --- Part Two ---

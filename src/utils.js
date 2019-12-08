@@ -2,6 +2,7 @@ import { readFile } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
+import readline from 'readline';
 
 // :: (String, String | Object) -> Promise
 const readFilePromise = (a, b = 'utf-8') => new Promise((resolve, reject) =>
@@ -11,7 +12,7 @@ const readFilePromise = (a, b = 'utf-8') => new Promise((resolve, reject) =>
 // :: (String, String | Object) -> Promise
 export const getDataFromFile = async (a, b) => await readFilePromise(a, b);
 
-// :: ...Function -> (a -> b)
+// :: (...Function) -> (a -> b)
 export const pipe = (...a) => b => a.reduce((c, d) => d(c), b);
 
 // :: (...Function) -> (a -> Promise(b))
@@ -78,3 +79,25 @@ export const strictFunctionsEnforcer = (...a) => b => a.every(c => c(b));
 
 // :: ...a -> Boolean
 export const primitiveMatching = (...a) => a.every((b, c, [d]) => b === d);
+
+// :: readline.Interface => (String -> Promise(String))
+const questionPrompter = rlInterface =>  prompt => new Promise((resolve, reject) => {
+  try {
+    rlInterface.question(prompt, answer => {
+      rlInterface.close();
+      resolve(answer);
+    });
+  } catch (e) {
+    reject(e);
+  }
+});
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+// :: String -> Promise(String)
+export const promptQuestion = questionPrompter(rl);
+
+export const unary = a => b => a(b);
