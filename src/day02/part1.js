@@ -1,5 +1,6 @@
 import { pipePromise, getDataFromInput, head } from '../utils.js';
-import { normalizeData, intcodeToStateRestorer, interpretIntcode } from './helpers.js'
+import { normalizeData, intcodeToStateRestorer } from './helpers.js';
+import interpretIntcode from '../lib/intcodeInterpreter.js'
 
 /**
  * --- Day 2: 1202 Program Alarm ---
