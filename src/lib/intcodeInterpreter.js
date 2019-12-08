@@ -16,15 +16,10 @@ const getOpcode = pipe(
 
 const getModes = pipe(
   String,
-  a => a.length === 1 ? '' : a.slice(0, -2),
-  a => a.split('').map(Number).reverse(),
-  a => a.length === 0
-    ? [0,0,0]
-    : a.length === 1
-      ? [...a, 0, 0]
-      : a.length === 2
-        ? [...a, 0]
-        : a
+  s => s.slice(0, -2),
+  s => [...s].reverse().join(''),
+  s => s.padEnd(3, '0'),
+  s => [...s].map(Number)
 );
 
 const getValueForMode = ({intcode, mode, value}) => ({

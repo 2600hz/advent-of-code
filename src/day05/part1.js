@@ -1,10 +1,5 @@
-import {
-  pipePromise,
-  getDataFromInput,
-  pipe,
-  lineToList,
-  listOfNumbers
-} from '../utils.js';
+import { pipePromise } from '../utils.js';
+import { getIntcode } from './helpers.js';
 import interpretIntcode from '../lib/intcodeInterpreter.js';
 
 /**
@@ -95,16 +90,6 @@ import interpretIntcode from '../lib/intcodeInterpreter.js';
  * After providing 1 to the only input instruction and passing all the tests, what diagnostic code
  * does the program produce?
  */
-
-const normalizeData = pipe(
-  lineToList,
-  listOfNumbers
-);
-
-const getIntcode = pipePromise(
-  getDataFromInput,
-  normalizeData
-);
 
 const computer = pipePromise(
   getIntcode,
