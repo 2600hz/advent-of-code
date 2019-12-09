@@ -56,66 +56,27 @@
 
 main(_) ->
     {Width, Height, ImageData} = image_data(),
-    Layers = image_data_to_layers(Width, Height, ImageData),
-    FewestZeroLayer = find_fewest_zeros(Layers),
+    SIFImage = sif:from_binary(Width, Height, ImageData),
+    FewestZeroLayer = find_fewest_zeros(sif:layers(SIFImage)),
 
-    Checksum = count_digits_in_layer(FewestZeroLayer, 1)
-        * count_digits_in_layer(FewestZeroLayer, 2),
+    Checksum = sif:count_digits_in_layer(FewestZeroLayer, 1)
+        * sif:count_digits_in_layer(FewestZeroLayer, 2),
 
     io:format("fewest 0s has chksum ~p: ~p~n", [Checksum, FewestZeroLayer]).
 
 find_fewest_zeros([Layer | Layers]) ->
-    find_fewest_zeros(Layers, Layer, count_digits_in_layer(Layer, 0)).
+    find_fewest_zeros(Layers, Layer, sif:count_digits_in_layer(Layer, 0)).
 
 find_fewest_zeros([], Layer, _Count) ->
     io:format("fewest zeros: ~p~n", [_Count]),
     Layer;
 find_fewest_zeros([Layer | Layers], Fewest, ZeroCount) ->
-    case count_digits_in_layer(Layer, 0) of
+    case sif:count_digits_in_layer(Layer, 0) of
         EvenLess when EvenLess < ZeroCount ->
             find_fewest_zeros(Layers, Layer, EvenLess);
         _ ->
             find_fewest_zeros(Layers, Fewest, ZeroCount)
     end.
-
-count_digits_in_layer({'incomplete', _Layer}, _Digit) -> 'undefined'; % undefined > 0 in term ordering
-count_digits_in_layer(Rows, Digit) ->
-    {Digit, Count} = lists:foldl(fun count_digits_in_row/2, {Digit, 0}, Rows),
-    Count.
-
-count_digits_in_row(Row, {Digit, Sum}) ->
-    DigitAscii = $0+Digit,
-    Zeros = << <<Digit>> || <<Pixel>> <= Row, Pixel =:= DigitAscii >>,
-    {Digit, byte_size(Zeros) + Sum}.
-
-image_data_to_layers(Width, Height, ImageData) ->
-    image_data_to_layers(Width, Height, ImageData, []).
-
-image_data_to_layers(_Width, _Height, <<>>, Layers) ->
-    lists:reverse(Layers);
-image_data_to_layers(_Width, _Height, <<"\n">>, Layers) ->
-    lists:reverse(Layers);
-image_data_to_layers(Width, Height, ImageData, Layers) ->
-    {Layer, RestImageData} = read_layer(Width, Height, ImageData),
-    image_data_to_layers(Width, Height, RestImageData, [Layer | Layers]).
-
-read_layer(Width, Height, ImageData) ->
-    Pixels = Width * Height,
-    case ImageData of
-        <<Layer:Pixels/binary, RestImageData/binary>> ->
-            {layer_to_rows(Width, Layer), RestImageData};
-        <<Incomplete/binary>> ->
-            {{'incomplete', Incomplete}, <<>>}
-    end.
-
-layer_to_rows(Width, Layer) ->
-    layer_to_rows(Width, Layer, []).
-
-layer_to_rows(_Width, <<>>, Rows) ->
-    lists:reverse(Rows);
-layer_to_rows(Width, Layer, Rows) ->
-    <<Row:Width/binary, Rest/binary>> = Layer,
-    layer_to_rows(Width, Rest, [Row | Rows]).
 
 image_data() ->
     ImageData = read_input(),
