@@ -1,4 +1,5 @@
-import { pipePromise, pipe, getDataFromInput, sum } from '../utils.js';
+import { pipePromise, sum } from '../utils.js';
+import { getMapData, getOrbitees } from './helpers.js';
 
 /**
  * --- Day 6: Universal Orbit Map ---
@@ -65,28 +66,6 @@ import { pipePromise, pipe, getDataFromInput, sum } from '../utils.js';
  *
  * What is the total number of direct and indirect orbits in your map data?
  */
-
-const normalizeData = pipe(
-  s => s.split(/\n/),
-  a => a.map(s => s.split(')')),
-  a => a.reduce((map, [orbitee, orbiter]) => {
-    map[orbiter] = orbitee;
-    return map;
-  }, {})
-);
-
-const getMapData = pipePromise(
-  getDataFromInput,
-  normalizeData
-);
-
-const getOrbitees = ({map, object}) => {
-  const orbitee = map[object];
-  return [
-    ...(orbitee ? getOrbitees({ map, object: orbitee }) : []),
-    ...(orbitee ? [orbitee] : [])
-  ];
-};
 
 const resolveOrbitsCount = map =>
   Object.keys(map).reduce((total, orbiter) =>

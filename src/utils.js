@@ -54,7 +54,7 @@ export const listOfNumbers = a => a.map(Number);
 export const sum = (a, b) => a + b;
 
 // :: [Number] -> Number
-export const sumUp = a => a.reduce(sum);
+export const sumUp = (...a) => a.reduce(sum);
 
 // :: (Number, Number) -> Number
 export const multiply = (a, b) => a * b;
