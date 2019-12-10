@@ -117,7 +117,7 @@
 
 main(_) ->
     Intcode = read_intcode(),
-    NewIntcode = aoc:set_output_fun(Intcode, fun output_fun/2),
+    NewIntcode = intcode:set_output_fun(Intcode, fun output_fun/2),
     Result = intcode:run(NewIntcode),
     io:format("run: ~p~n", [Result]).
 
