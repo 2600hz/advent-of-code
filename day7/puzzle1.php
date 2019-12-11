@@ -2,17 +2,19 @@
 
 $initialIntcode = explode(',', trim(file_get_contents('input.txt')));
 
-$signalValues = [];
+// $signalValues = [];
 $maxPhases = base_convert(44444, 5, 10);
+$bestSignal = 0;
 
 for ($i=0; $i <= $maxPhases; $i++) {
     $phases = str_pad(base_convert($i, 10, 5), 5, "0", STR_PAD_LEFT);
-    $signalValues[] = runAmps($initialIntcode, $phases);
+    $signal = runAmps($initialIntcode, $phases);
+    if($signal > $bestSignal) {
+        $bestSignal = $signal;
+    }
 }
 
-$result = max($signalValues);
-
-echo $result.PHP_EOL;
+echo $bestSignal.PHP_EOL;
 
 function runAmps($intcode, $phases) {
     $ampA = runIntcode($intcode, [$phases[0], 0]);
@@ -20,7 +22,7 @@ function runAmps($intcode, $phases) {
     $ampC = runIntcode($intcode, [$phases[2], array_pop($ampB)]);
     $ampD = runIntcode($intcode, [$phases[3], array_pop($ampC)]);
     $ampE = runIntcode($intcode, [$phases[4], array_pop($ampD)]);
-    return $ampE[0];
+    return array_pop($ampE);
 }
 
 function runIntcode($intcode, $inputs=[]) {
