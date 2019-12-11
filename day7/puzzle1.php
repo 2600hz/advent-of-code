@@ -1,13 +1,13 @@
 <?php
 
+include 'utils.php';
+
 $initialIntcode = explode(',', trim(file_get_contents('input.txt')));
 
-// $signalValues = [];
-$maxPhases = base_convert(44444, 5, 10);
+$possiblePhases = listPermutations([0,1,2,3,4]);
 $bestSignal = 0;
 
-for ($i=0; $i <= $maxPhases; $i++) {
-    $phases = str_pad(base_convert($i, 10, 5), 5, "0", STR_PAD_LEFT);
+foreach ($possiblePhases as $phases) {
     $signal = runAmps($initialIntcode, $phases);
     if($signal > $bestSignal) {
         $bestSignal = $signal;
@@ -15,6 +15,7 @@ for ($i=0; $i <= $maxPhases; $i++) {
 }
 
 echo $bestSignal.PHP_EOL;
+
 
 function runAmps($intcode, $phases) {
     $ampA = runIntcode($intcode, [$phases[0], 0]);
