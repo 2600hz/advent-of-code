@@ -5,6 +5,7 @@
         ,run/1
         ,set_output_fun/2
         ,set_input_fun/2
+        ,twiddle_bit/3
         ]).
 
 -export([tests/0]).
@@ -46,11 +47,15 @@ from_binary(Contents) ->
      ,'input_fun' => fun default_input_fun/0
      }.
 
+-spec twiddle_bit(intcode_program(), non_neg_integer(), integer()) -> intcode_program().
+twiddle_bit(#{'program' := Program}=Intcode, Bit, Value) ->
+    Intcode#{'program' => Program#{Bit => Value}}.
+
 default_output_fun(Value, _Intcode) -> io:format('standard_io', "<<< ~p~n", [Value]).
 
 default_input_fun() ->
-    InputChar = io:get_chars(">>> ", 1),
-    list_to_integer(InputChar, 10).
+    {'ok', [InputChar|_]} = io:fread(">>> ", "~d"),
+    InputChar.
 
 -spec to_binary(intcode_program()) -> binary().
 to_binary(#{'program' := Intcode}) ->
