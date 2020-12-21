@@ -227,7 +227,6 @@ count_neighbors({Ax, Ay, Az}, {{Px, Py, Pz}=Point, State, Count}) ->
         'false' -> {Point, State, Count}
     end.
 
-
 add_point({X, Y, Z}, Points) ->
     [{Dx, Dy, Dz} || Dx <- [X-1, X, X+1],
                     Dy <- [Y-1, Y, Y+1],
