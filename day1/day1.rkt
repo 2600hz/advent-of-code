@@ -51,20 +51,50 @@ How many measurements are larger than the previous measurement?
 (require racket/list)
 (require threading)
 
-(define (depth-increase-count depths)
-  (~>> depths
-       (foldl (lambda (elem accum)
-           (match-let ([(list prev count) accum])
-             (if (or (= prev -1) (<= elem prev))
-                 (list elem count)
-                 (list elem (+ count 1)))))
-         (list -1 0))
-       last))
+(define (list-take n lst)
+  (cond [(empty? lst) (values empty empty)]
+      [(= n 0) (values empty lst)]
+      [else (let-values ([(taken remaining) (list-take (- n 1) (rest lst))])
+              (values (cons (first lst) taken) remaining))]))
 
-(define (sonar-sweep filepath)
+(define (list-sum lst)
+  (foldl (lambda (elem accum) (+ elem accum)) 0 lst))
+
+(define (list-take-sum n lst)
+  (let-values ([(taken remaining) (list-take n lst)])
+    (list-sum taken)))
+
+(define (depth-increase-count windowSize depths)
+  (depth-increase-count-aux windowSize depths -1 0))
+
+(define (depth-increase-count-aux windowSize depths prev result)
+  (if (empty? depths)
+      result
+      (let* ([takenDepthsSum (list-take-sum windowSize depths)]
+             [hasIncreased (or (= prev -1) (<= takenDepthsSum prev))]
+             [newResult (if hasIncreased result (+ result 1))])
+        (depth-increase-count-aux windowSize (rest depths) takenDepthsSum newResult))))
+
+(define (sonar-sweep filepath windowSize)
   (~>> filepath
        file->lines
        (map string->number)
-       depth-increase-count))
+       (depth-increase-count windowSize)))
 
-(sonar-sweep "data.txt")
+(define (sonar-sweep-part-1 filepath)
+  (sonar-sweep filepath 1))
+
+(define (sonar-sweep-part-2 filepath)
+  (sonar-sweep filepath 3))
+
+; Run with sample data
+
+(sonar-sweep-part-1 "sample.txt")
+
+(sonar-sweep-part-2 "sample.txt")
+
+; Run with test data
+
+(sonar-sweep-part-1 "test.txt")
+
+(sonar-sweep-part-2 "test.txt")
