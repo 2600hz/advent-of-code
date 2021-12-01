@@ -95,14 +95,31 @@ main(_) ->
     p1_2(Input).
 
 p1_1([First | Measurements]) ->
-    Count = count_incr(First, Measurements, 0),
-    io:format("p1-1: depth increased ~p times~n", [Count]).
+    {IncrTimeUs, Count} = timer:tc(fun count_incr/3, [First, Measurements, 0]),
+    {FoldlTimeUs, Count} = timer:tc(fun count_foldl/2, [First, Measurements]),
 
+    io:format("p1-1: depth increased ~p times~n", [Count]),
+    io:format("  count_incr/3: ~pus count_foldl/2: ~pus~n"
+             ,[IncrTimeUs, FoldlTimeUs]
+             ).
+
+%% manual folding
 count_incr(_CurrentDepth, [], Count) -> Count;
 count_incr(CurrentDepth, [NextDepth | Depths], Count) when NextDepth > CurrentDepth ->
     count_incr(NextDepth, Depths, Count+1);
 count_incr(_CurrentDepth, [NextDepth | Depths], Count) ->
     count_incr(NextDepth, Depths, Count).
+
+%% alternative to first solution
+count_foldl(First, Measurements) ->
+    {Count, _} = lists:foldl(fun count_foldl_fun/2, {0, First}, Measurements),
+    Count.
+
+count_foldl_fun(NextDepth, {Count, CurrentDepth}) when NextDepth > CurrentDepth ->
+    {Count+1, NextDepth};
+count_foldl_fun(NextDepth, {Count, _CurrentDepth}) ->
+    {Count, NextDepth}.
+
 
 p1_2([First, Second, Third | Measurements]) ->
     Count = count_incr_window({First, Second, Third}, Measurements, 0),
