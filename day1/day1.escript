@@ -86,6 +86,16 @@
 
 %% Consider sums of a three-measurement sliding window. How many sums are larger than the previous sum?
 
+%% Runtime of various solutions
+%%
+%% p1-1: depth increased 1553 times
+%%   count_incr/3: 12us
+%%   count_foldl/2: 51us
+%%   count_zip/1: 61us
+%%
+%% p1-2: depth increased 1597 times
+%%   count_incr_window: 37us
+%%   count_ad/1: 18us
 
 -mode(compile).
 
@@ -97,10 +107,11 @@ main(_) ->
 p1_1([First | Measurements]) ->
     {IncrTimeUs, Count} = timer:tc(fun count_incr/3, [First, Measurements, 0]),
     {FoldlTimeUs, Count} = timer:tc(fun count_foldl/2, [First, Measurements]),
+    {ZipTimeUs, Count} = timer:tc(fun count_zip/1, [[First | Measurements]]),
 
     io:format("p1-1: depth increased ~p times~n", [Count]),
-    io:format("  count_incr/3: ~pus count_foldl/2: ~pus~n"
-             ,[IncrTimeUs, FoldlTimeUs]
+    io:format("  count_incr/3: ~pus~n  count_foldl/2: ~pus~n  count_zip/1: ~pus~n~n"
+             ,[IncrTimeUs, FoldlTimeUs, ZipTimeUs]
              ).
 
 %% manual folding
@@ -110,7 +121,7 @@ count_incr(CurrentDepth, [NextDepth | Depths], Count) when NextDepth > CurrentDe
 count_incr(_CurrentDepth, [NextDepth | Depths], Count) ->
     count_incr(NextDepth, Depths, Count).
 
-%% alternative to first solution
+%% alternative to first solution, using lists:foldl/2
 count_foldl(First, Measurements) ->
     {Count, _} = lists:foldl(fun count_foldl_fun/2, {0, First}, Measurements),
     Count.
@@ -120,10 +131,16 @@ count_foldl_fun(NextDepth, {Count, CurrentDepth}) when NextDepth > CurrentDepth 
 count_foldl_fun(NextDepth, {Count, _CurrentDepth}) ->
     {Count, NextDepth}.
 
+%% lifted from solutions megathread
+count_zip([_First | Rest]=Depths) ->
+    %% lists:zip/2 requires lists of same length
+    length([1 || {A, B} <- lists:zip(Depths, Rest ++ [0]), B > A]).
 
-p1_2([First, Second, Third | Measurements]) ->
-    Count = count_incr_window({First, Second, Third}, Measurements, 0),
-    io:format("p1-2: depth increased ~p times~n", [Count]).
+p1_2([First, Second, Third | RestDepths]=Depths) ->
+    {WindowTimeUs, Count} = timer:tc(fun count_incr_window/3, [{First, Second, Third}, RestDepths, 0]),
+    {ADTimeUs, Count} = timer:tc(fun count_ad/1, [Depths]),
+    io:format("p1-2: depth increased ~p times~n", [Count]),
+    io:format("  count_incr_window: ~pus~n  count_ad/1: ~pus~n", [WindowTimeUs, ADTimeUs]).
 
 count_incr_window({_First, _Second, _Third}, [], Count) ->
     Count;
@@ -136,6 +153,17 @@ count_incr_window({First, Second, Third}, [Fourth | Depths], Count) ->
         'false' ->
             count_incr_window({Second, Third, Fourth}, Depths, Count)
     end.
+
+%% Insight here is if you have A+B+C < B+C+D, B+C cancels on both
+%% sides, so just compare A < D
+count_ad([_, _, _ | Rest]=Depths) ->
+    count_ad(Depths, Rest, 0).
+
+count_ad(_, [], Count) -> Count;
+count_ad([A | RestA], [D | RestD], Count) when D > A ->
+    count_ad(RestA, RestD, Count+1);
+count_ad([_ | RestA], [_ | RestD], Count) ->
+    count_ad(RestA, RestD, Count).
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
