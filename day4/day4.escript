@@ -85,16 +85,36 @@
 %% board will win first. What will your final score be if you choose
 %% that board?
 
+%% --- Part Two ---
+
+%% On the other hand, it might be wise to try a different strategy:
+%% let the giant squid win.
+
+%% You aren't sure how many bingo boards a giant squid could play at
+%% once, so rather than waste time counting its arms, the safe thing
+%% to do is to figure out which board will win last and choose that
+%% one. That way, no matter which boards it picks, it will win for
+%% sure.
+
+%% In the above example, the second board is the last to win, which
+%% happens after 13 is eventually called and its middle column is
+%% completely marked. If you were to keep playing until this point,
+%% the second board would have a sum of unmarked numbers equal to 148
+%% for a final score of 148 * 13 = 1924.
+
+%% Figure out which board will win last. Once it wins, what would its
+%% final score be?
+
 main(_) ->
     Input = read_input("p4.txt"),
     p4_1(Input),
     p4_2(Input).
 
 p4_1({BingoNumbers, Boards}) ->
-    {N, {{Type, _Data}, Board}} = find_winner(Boards, BingoNumbers),
+    {N, Board} = find_winner(Boards, BingoNumbers),
     Score = score_board(Board),
-    io:format("winning ~s board at ~p~nscore: ~p final: ~p~n"
-             ,[Type, N, Score, Score * N]
+    io:format("winning board at ~p~nscore: ~p final: ~p~n"
+             ,[N, Score, Score * N]
              ).
 
 score_board(Rows) ->
@@ -123,10 +143,11 @@ mark_cell(N, {N, Row}) ->
 mark_cell(C, {N, Row}) ->
     {N, [C | Row]}.
 
+
 is_winning_board(Rows, Acc) ->
     case is_winning_row(Rows) of
         'false' -> is_winning_column(Rows, Acc);
-        Winner -> {Winner, Rows}
+        _Winner -> Rows
     end.
 
 is_winning_row([]) -> 'false';
@@ -139,7 +160,7 @@ is_winning_row([Row | Rows]) ->
 is_winning_column([FirstRow | Rows], Acc) ->
     case is_winning_column(Rows, FirstRow, 1) of
         'false' -> Acc;
-        Winner -> {Winner, [FirstRow | Rows]}
+        _Winner -> [FirstRow | Rows]
     end.
 
 is_winning_column(Rows, [{_, 'true'} | Cells], Column) ->
@@ -155,12 +176,35 @@ is_winning_column(Rows, [_ | Cells], Column) ->
     is_winning_column(Rows, Cells, Column+1);
 is_winning_column(_Rows, [], _Column) -> 'false'.
 
-
 is_winning_cell({_, 'true'}) -> 'true';
 is_winning_cell(_) -> 'false'.
 
-p4_2(Input) ->
-    Input.
+p4_2({BingoNumbers, Boards}) ->
+    {N, Board} = find_last_winner(Boards, BingoNumbers),
+    Score = score_board(Board),
+    io:format("last winner board at ~p~nscore: ~p final: ~p~n"
+             ,[N, Score, Score * N]
+             ).
+
+find_last_winner(Boards, [N | BingoNumbers]) ->
+    {N, NewBoards} = lists:foldl(fun mark_board/2, {N, []}, Boards),
+
+    case lists:filter(fun is_not_winning_board/1, NewBoards) of
+        [LastWinner] -> find_winner([LastWinner], BingoNumbers);
+        InPlayBoards -> find_last_winner(InPlayBoards, BingoNumbers)
+    end.
+
+is_not_winning_board(Rows) ->
+    case is_winning_row(Rows) of
+        'false' -> is_not_winning_column(Rows);
+        _ -> 'false'
+    end.
+
+is_not_winning_column([FirstRow | Rows]) ->
+    case is_winning_column(Rows, FirstRow, 1) of
+        'false' -> 'true';
+        _Winner -> 'false'
+    end.
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
