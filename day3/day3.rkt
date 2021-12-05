@@ -134,27 +134,30 @@ Finally, to find the life support rating, multiply the oxygen generator rating (
 
 Use the binary numbers in your diagnostic report to calculate the oxygen generator rating and CO2 scrubber rating, then multiply them together. What is the life support rating of the submarine? (Be sure to represent your answer in decimal, not binary.)
 
+Your puzzle answer was 6677951.
 |#
 
-(define (partition-list pred lst)
+(define (partition-list pred lst p1 p2)
   (if (empty? lst)
-      (list empty empty)
-      (match-let* ([(cons item restLst) lst]
-                   [(list p1 p2) (partition-list pred restLst)])
+      (list p1 p2)
+      (match-let ([(cons item restLst) lst])
         (if (pred item)
-            (list (cons item p1) p2)
-            (list p1 (cons item p2))))))
+            (partition-list pred restLst (cons item p1) p2)
+            (partition-list pred restLst p1 (cons item p2))))))
 
 ; Tree recursion
 (define (find-by-bit-criteria pos lst)
-  (match-let* ([(list bit1Lst bit0Lst) (partition-list (lambda (item) (equal? (string-ref item pos) #\1)) lst)]
+  (match-let* ([(list bit1Lst bit0Lst) (partition-list (lambda (item) (equal? (string-ref item pos) #\1)) lst empty empty)]
                [(list mostCommonBitLst leastCommonBitLst) (if (>= (length bit1Lst) (length bit0Lst)) (list bit1Lst bit0Lst) (list bit0Lst bit1Lst))]
                [mostCommonBitLen (length mostCommonBitLst)]
                [leastCommonBitLen (length leastCommonBitLst)])
-    (cond [(and (= mostCommonBitLen 1) (= leastCommonBitLen 1)) (list (first mostCommonBitLst) (first leastCommonBitLst))]
-           [(= mostCommonBitLen 1) (list (first mostCommonBitLst) (last (find-by-bit-criteria (+ pos 1) leastCommonBitLst)))]
-           [(= leastCommonBitLen 1) (list (first (find-by-bit-criteria (+ pos 1) mostCommonBitLst)) (first leastCommonBitLst))]
-           [else (list (first (find-by-bit-criteria (+ pos 1) mostCommonBitLst)) (last (find-by-bit-criteria (+ pos 1) leastCommonBitLst)))])))
+    (cond
+      [(and (= leastCommonBitLen 0) (= mostCommonBitLen 1)) (list (first mostCommonBitLst) "-")]
+      [(and (= leastCommonBitLen 0) (> mostCommonBitLen 1)) (list (first (find-by-bit-criteria (+ pos 1) mostCommonBitLst)) "-")]
+      [(and (= mostCommonBitLen 1) (= leastCommonBitLen 1)) (list (first mostCommonBitLst) (first leastCommonBitLst))]
+      [(= mostCommonBitLen 1) (list (first mostCommonBitLst) (last (find-by-bit-criteria (+ pos 1) leastCommonBitLst)))]
+      [(= leastCommonBitLen 1) (list (first (find-by-bit-criteria (+ pos 1) mostCommonBitLst)) (first leastCommonBitLst))]
+      [else (list (first (find-by-bit-criteria (+ pos 1) mostCommonBitLst)) (last (find-by-bit-criteria (+ pos 1) leastCommonBitLst)))])))
 
 (define (get-rates-2 lst)
   (list (string->number (first lst) 2) (string->number (last lst) 2)))
