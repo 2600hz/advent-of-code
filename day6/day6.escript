@@ -86,6 +86,16 @@
 %% Find a way to simulate lanternfish. How many lanternfish would
 %% there be after 80 days?
 
+%% --- Part Two ---
+
+%% Suppose the lanternfish live forever and have unlimited food and
+%% space. Would they take over the entire ocean?
+
+%% After 256 days in the example above, there would be a total of
+%% 26984457539 lanternfish!
+
+%% How many lanternfish would there be after 256 days?
+
 main(_) ->
     Input = read_input("p6.txt"),
     p6_1(Input),
@@ -93,26 +103,52 @@ main(_) ->
 
 p6_1(FishPop) ->
     Days = 80,
-    Pop = days_later(FishPop, Days),
-    io:format("after ~p days, ~p fish~n", [Days, length(Pop)]).
+    {TimeUs, Pop} = timer:tc(fun count_pop/2, [FishPop, Days-1]),
+    io:format("~p ms: after ~p days, ~p fish~n", [TimeUs div 1000, Days, Pop]).
 
-days_later(FishPop, 0) -> FishPop;
-days_later(FishPop, DaysLeft) ->
-    Pop = lists:foldl(fun fishy_day/2, [], FishPop),
-    days_later(Pop, DaysLeft-1).
+p6_2(FishPop) ->
+    Days = 256,
+    {TimeUs, Pop} = timer:tc(fun count_pop/2, [FishPop, Days-1]),
+    io:format("~p ms: after ~p days, ~p fish~n", [TimeUs div 1000, Days, Pop]).
 
-%% Initial state: 3,4,3,1,2
-%% After  1 day:  2,3,2,0,1
-%% After  2 days: 1,2,1,6,0,8
-%% After  3 days: 0,1,0,5,6,7,8
-%% After  4 days: 6,0,6,4,5,6,7,8,8
-fishy_day(0, Acc) ->
-    [6, 8 | Acc];
-fishy_day(N, Acc) ->
-    [N-1 | Acc].
+count_pop(InitPop, Days) ->
+    {Days, _Memoize, FishPop} =
+        lists:foldl(fun procreate/2, {Days, #{}, length(InitPop)}, InitPop),
+    FishPop.
 
-p6_2(Input) ->
-    Input.
+%% Fish starts at 3, on day 4 a second-gen starts at 8
+%% initial Fish will procreate every 7 days until end of Days
+procreate(Fish, {Days, Calculated, FishPop}) ->
+    case maps:get(Fish, Calculated, 'undefined') of
+        'undefined' ->
+            procreate(Fish, Days, Calculated, FishPop);
+        N ->
+            {Days, Calculated, FishPop + N}
+    end.
+
+procreate(Fish, Days, Calculated, FishPop) ->
+    ChildrenDOBs = lists:seq(Fish+1, Days, 7),
+    Descendants = count_prog(Days, ChildrenDOBs, 0),
+    {Days, Calculated#{Fish => Descendants}, FishPop + Descendants}.
+
+%% CurrGen - Dates of birth
+count_prog(_Days, [], FishCount) -> FishCount;
+count_prog(Days, CurrGen, FishCount) ->
+    {Days, NextGen} = lists:foldl(fun procreate_prog/2, {Days, []}, CurrGen),
+    count_prog(Days, NextGen, FishCount + length(CurrGen)).
+
+%%   remove the 9 days before first procreate
+%%   then generate a sequence every 7 days for next gen
+procreate_prog(Fish, {Days, NextGen}) when Fish+9 > Days -> {Days, NextGen};
+procreate_prog(Fish, {Days, NextGen}) ->
+    FirstBornDOB = Fish+9,
+    RestDOBs =
+        case Fish+9 of
+            Day when Day < Days ->
+                lists:seq(Fish+9+7, Days, 7);
+            _Day -> []
+        end,
+    {Days, [FirstBornDOB | RestDOBs] ++ NextGen}.
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
