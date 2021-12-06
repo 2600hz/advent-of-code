@@ -97,17 +97,12 @@
 %% How many lanternfish would there be after 256 days?
 
 main(_) ->
-    Input = read_input("p6.txt"),
+    Input = read_input("p6-test.txt"),
     p6_1(Input),
     p6_2(Input).
 
 p6_1(FishPop) ->
-    Days = 80,
-    {TimeUs, Pop} = timer:tc(fun count_pop/2, [FishPop, Days-1]),
-    io:format("~p ms: after ~p days, ~p fish~n", [TimeUs div 1000, Days, Pop]).
-
-p6_2(FishPop) ->
-    Days = 256,
+    Days = 18,
     {TimeUs, Pop} = timer:tc(fun count_pop/2, [FishPop, Days-1]),
     io:format("~p ms: after ~p days, ~p fish~n", [TimeUs div 1000, Days, Pop]).
 
@@ -149,6 +144,82 @@ procreate_prog(Fish, {Days, NextGen}) ->
             _Day -> []
         end,
     {Days, [FirstBornDOB | RestDOBs] ++ NextGen}.
+
+p6_2(FishPop) ->
+    Days = 18,
+    {TimeUs, Pop} = timer:tc(fun count_pop1/2, [FishPop, Days-1]),
+    io:format("~p ms: after ~p days, ~p fish~n", [TimeUs div 1000, Days, Pop]).
+
+count_pop1(InitPop, Days) ->
+    io:format("pop: ~p~n", [InitPop]),
+    {Days, _Memoize, FishPop} =
+        lists:foldl(fun procreate1/2, {Days, #{}, 0}, InitPop),
+    FishPop.
+
+%% Fish starts at 3, on day 4 a second-gen starts at 8
+%% initial Fish will procreate every 7 days until end of Days
+procreate1(Fish, {Days, Calculated, FishPop}) ->
+    case maps:get({0, Fish}, Calculated, 'undefined') of
+        'undefined' ->
+            procreate1(Fish, Days, Calculated, FishPop+1);
+        N ->
+            io:format("fish ~p: memoized ~p~n", [{0, Fish}, N]),
+            {Days, Calculated, FishPop + N}
+    end.
+
+procreate1(Fish, Days, Calculated, FishPop) ->
+    ChildrenDOBs = lists:seq(Fish+1, Days, 7),
+    io:format("fish ~p: pop: ~p~n", [{0, Fish}, ChildrenDOBs]),
+    {Descendants, NextCalc} = count_progeny(Days, ChildrenDOBs, Calculated, 0),
+    io:format("fish ~p: descendants: ~p~n", [{0, Fish}, Descendants]),
+    {Days, NextCalc#{{0, Fish} => Descendants + 1}, FishPop + Descendants}.
+
+%% CurrGen - Dates of birth
+count_progeny(_Days, [], Calculated, FishCount) ->
+    io:format("    counted progeny: ~p~n", [FishCount]),
+    {FishCount, Calculated};
+count_progeny(Days, [Child | Children], Calculated, FishCount) ->
+    {Days, NewCalculated, NextCount} =
+        procreate_progeny(Child, {Days, Calculated, 0}),
+    io:format("  adding child ~p with ~p descendants~n", [Child, NextCount]),
+    count_progeny(Days, Children, NewCalculated, FishCount + NextCount + 1).
+
+%%   remove the 9 days before first procreate
+%%   then generate a sequence every 7 days for next gen
+procreate_progeny(Fish, {Days, Calculated, NextCount}) when Fish+9 > Days ->
+    io:format("  fish ~p: '1'~n", [Fish]),
+    {Days, Calculated#{Fish => 1}, NextCount+1};
+procreate_progeny(Fish, {Days, Calculated, NextCount}) ->
+    case maps:get(Fish, Calculated, 'undefined') of
+        'undefined' ->
+            procreate_progeny(Fish, Days, Calculated, NextCount);
+        Count ->
+            io:format("  fish ~p precalc: ~p~n", [Fish, Count]),
+            {Days, Calculated, NextCount+Count}
+    end.
+
+procreate_progeny(Fish, Days, Calculated, NextCount) ->
+    DOBs =
+        case Fish+9 of
+            FirstBornDOB when FirstBornDOB < Days ->
+                [FirstBornDOB | lists:seq(FirstBornDOB+7, Days, 7)];
+            _Day -> []
+        end,
+    Children = length(DOBs),
+
+    io:format("  fish ~p has pop: ~w~n", [Fish, DOBs]),
+
+    %% count each child's progeny
+    {SubCount, NextCalc} = count_progeny(Days, DOBs, Calculated, 0),
+
+    io:format("  fish ~p has ~p descendants~n", [Fish, SubCount]),
+
+    {Days
+    ,NextCalc#{Fish=>Children+SubCount}
+    ,NextCount+Children
+    }.
+
+%% overcounting, memoized properly? double-counting
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
