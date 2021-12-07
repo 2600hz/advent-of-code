@@ -57,34 +57,83 @@
 %% the least fuel possible. How much fuel must they spend to align to
 %% that position?
 
+%% --- Part Two ---
+
+%% The crabs don't seem interested in your proposed solution. Perhaps
+%% you misunderstand crab engineering?
+
+%% As it turns out, crab submarine engines don't burn fuel at a
+%% constant rate. Instead, each change of 1 step in horizontal
+%% position costs 1 more unit of fuel than the last: the first step
+%% costs 1, the second step costs 2, the third step costs 3, and so
+%% on.
+
+%% As each crab moves, moving further becomes more expensive. This
+%% changes the best horizontal position to align them all on; in the
+%% example above, this becomes 5:
+
+%%     Move from 16 to 5: 66 fuel
+%%     Move from 1 to 5: 10 fuel
+%%     Move from 2 to 5: 6 fuel
+%%     Move from 0 to 5: 15 fuel
+%%     Move from 4 to 5: 1 fuel
+%%     Move from 2 to 5: 6 fuel
+%%     Move from 7 to 5: 3 fuel
+%%     Move from 1 to 5: 10 fuel
+%%     Move from 2 to 5: 6 fuel
+%%     Move from 14 to 5: 45 fuel
+
+%% This costs a total of 168 fuel. This is the new cheapest possible
+%% outcome; the old alignment position (2) now costs 206 fuel instead.
+
+%% Determine the horizontal position that the crabs can align to using
+%% the least fuel possible so they can make you an escape route! How
+%% much fuel must they spend to align to that position?
+
 main(_) ->
     Input = read_input("p7.txt"),
     p7_1(Input),
     p7_2(Input).
 
 p7_1(CrabPositions) ->
-    minimize_fuel(lists:sort(CrabPositions)).
+    minimize_fuel(lists:sort(CrabPositions), fun one_per_step/2).
 
-minimize_fuel([Crab | _]=Crabs)  ->
+minimize_fuel([Crab | _]=Crabs, CostFun)  ->
     [Top | _] = lists:reverse(Crabs),
-    {AlignTo, FuelCost} = minimize_fuel(Crabs, {Crab, Top}, {-1, 0}),
+    {AlignTo, FuelCost} = minimize_fuel(Crabs, CostFun, {Crab, Top}, {-1, 0}),
     io:format("at ~p, fuel cost ~p~n", [AlignTo, FuelCost]).
 
-minimize_fuel(_Crabs, {AlignTo, TopAlignTo}, {LowAlignTo, LowCost}) when AlignTo > TopAlignTo ->
+one_per_step(Crabs, AlignTo) ->
+    lists:sum([abs(Crab - AlignTo) || Crab <- Crabs]).
+
+minimize_fuel(_Crabs, _CostFun
+             ,{AlignTo, TopAlignTo}
+             ,{LowAlignTo, LowCost})
+  when AlignTo > TopAlignTo ->
     {LowAlignTo, LowCost};
-minimize_fuel(Crabs, {AlignTo, TopAlignTo}, {-1, 0}) ->
-    minimize_fuel(Crabs, {AlignTo+1, TopAlignTo}, {AlignTo, lists:sum([abs(Crab - AlignTo) || Crab <- Crabs])});
-minimize_fuel(Crabs, {AlignTo, TopAlignTo}, {_LowAlignTo, LowCost}=Acc0) ->
-    Acc1 = case lists:sum([abs(Crab - AlignTo) || Crab <- Crabs]) of
+minimize_fuel(Crabs, CostFun, {AlignTo, TopAlignTo}, {-1, 0}) ->
+    minimize_fuel(Crabs
+                 ,CostFun
+                 ,{AlignTo+1, TopAlignTo}
+                 ,{AlignTo, CostFun(Crabs, AlignTo)}
+                 );
+minimize_fuel(Crabs, CostFun, {AlignTo, TopAlignTo}, {_LowAlignTo, LowCost}=Acc0) ->
+    Acc1 = case CostFun(Crabs, AlignTo) of
                LowerCost when LowerCost < LowCost ->
                    {AlignTo, LowerCost};
                _Cost ->
                    Acc0
            end,
-    minimize_fuel(Crabs, {AlignTo+1, TopAlignTo}, Acc1).
+    minimize_fuel(Crabs, CostFun, {AlignTo+1, TopAlignTo}, Acc1).
 
-p7_2(Input) ->
-    Input.
+p7_2(CrabPositions) ->
+    minimize_fuel(lists:sort(CrabPositions), fun one_more_per_step/2).
+
+one_more_per_step(Crabs, AlignTo) ->
+    lists:sum([nsquared(abs(Crab-AlignTo)) || Crab <- Crabs]).
+
+nsquared(N) ->
+    (N*N + N) div 2.
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
