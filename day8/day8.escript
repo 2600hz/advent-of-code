@@ -109,8 +109,70 @@
 %% In the output values, how many times do digits 1, 4, 7, or 8
 %% appear?
 
+%% --- Part Two ---
+
+%% Through a little deduction, you should now be able to determine the
+%% remaining digits. Consider again the first example above:
+
+%% acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab | cdfeb fcadb cdfeb cdbaf
+
+%% After some careful analysis, the mapping between signal wires and
+%% segments only make sense in the following configuration:
+
+%%  dddd
+%% e    a
+%% e    a
+%%  ffff
+%% g    b
+%% g    b
+%%  cccc
+
+%% So, the unique signal patterns would correspond to the following
+%% digits:
+
+%%     acedgfb: 8
+%%     cdfbe: 5
+%%     gcdfa: 2
+%%     fbcad: 3
+%%     dab: 7
+%%     cefabd: 9
+%%     cdfgeb: 6
+%%     eafb: 4
+%%     cagedb: 0
+%%     ab: 1
+
+%% Then, the four digits of the output value can be decoded:
+
+%%     cdfeb: 5
+%%     fcadb: 3
+%%     cdfeb: 5
+%%     cdbaf: 3
+
+%% Therefore, the output value for this entry is 5353.
+
+%% Following this same process for each entry in the second, larger
+%% example above, the output value of each entry can be determined:
+
+%%     fdgacbe cefdb cefbgd gcbe: 8394
+%%     fcgedb cgb dgebacf gc: 9781
+%%     cg cg fdcagb cbg: 1197
+%%     efabcd cedba gadfec cb: 9361
+%%     gecf egdcabf bgf bfgea: 4873
+%%     gebdcfa ecba ca fadegcb: 8418
+%%     cefg dcbef fcge gbcadfe: 4548
+%%     ed bcgafe cdgba cbgef: 1625
+%%     gbdfcae bgc cg cgb: 8717
+%%     fgae cfgab fg bagce: 4315
+
+%% Adding all of the output values in this larger example produces
+%% 61229.
+
+%% For each entry, determine all of the wire/segment connections and
+%% decode the four-digit output values. What do you get if you add up
+%% all of the output values?
+
 main(_) ->
-    Input = read_input("p8.txt"),
+    Input = read_input("p8-test.txt"),
     p8_1(Input),
     p8_2(Input).
 
@@ -136,7 +198,80 @@ count_easy_digit(<<_:7/binary>>, Count) ->
 count_easy_digit(_Digit, Count) -> Count.
 
 p8_2(Input) ->
-    Input.
+    Decoded = lists:foldl(fun decode_digits/2, [], Input),
+    Sum = lists:sum(Decoded),
+    io:format("sum of decoded: ~p~n~p~n", [Sum, Decoded]).
+
+decode_digits({Signals, OutputValues}, Decoded) ->
+    {TryAgainSignals, SegmentMapping} = map_signal_to_segment(Signals, #{}),
+    io:format("signals: ~p~noutputs: ~p~n", [Signals, OutputValues]),
+    io:format("map: ~p~ntry: ~p~n~n", [maps:map(fun from_set/2, SegmentMapping), TryAgainSignals]),
+    Decoded.
+
+from_set(_Segment, Possible) ->
+    sets:to_list(Possible).
+
+%% a digit is:
+%%  aaaa
+%% b    c
+%% b    c
+%%  dddd
+%% e    f
+%% e    f
+%%  gggg
+%% so we map "easy" digits (like if 1 is "eg", "e"=>c, "g"=>f, then if
+%% we see "g" somewhere else, we know it maps to the original
+%% diagram's "f" segment).
+map_signal_to_segment(Signals, Mapping) ->
+    map_signal_to_segment(Signals, [], Mapping).
+
+map_signal_to_segment([], TryAgainSignals, Mapping) ->
+    {TryAgainSignals, Mapping};
+map_signal_to_segment([<<_:2/binary>> = One | Signals], TryAgainSignals, Mapping) ->
+    Possible = sets:from_list(binary_to_list(One)),
+    Mapping1 = add_to_mapping(Mapping, [{<<"c">>, Possible}
+                                       ,{<<"f">>, Possible}
+                                       ]),
+    map_signal_to_segment(Signals, TryAgainSignals, Mapping1);
+map_signal_to_segment([<<_:3/binary>> = Seven | Signals], TryAgainSignals, Mapping) ->
+    Possible = sets:from_list(binary_to_list(Seven)),
+    Mapping1 = add_to_mapping(Mapping, [{<<"a">>, Possible}
+                                       ,{<<"c">>, Possible}
+                                       ,{<<"f">>, Possible}
+                                       ]),
+    map_signal_to_segment(Signals, TryAgainSignals, Mapping1);
+map_signal_to_segment([<<_:4/binary>> = Four | Signals], TryAgainSignals, Mapping) ->
+    Possible = sets:from_list(binary_to_list(Four)),
+    Mapping1 = add_to_mapping(Mapping, [{<<"b">>, Possible}
+                                       ,{<<"c">>, Possible}
+                                       ,{<<"d">>, Possible}
+                                       ,{<<"f">>, Possible}
+                                       ]),
+    map_signal_to_segment(Signals, TryAgainSignals, Mapping1);
+map_signal_to_segment([<<_:7/binary>> = Eight | Signals], TryAgainSignals, Mapping) ->
+    Possible = sets:from_list(binary_to_list(Eight)),
+    Mapping1 = add_to_mapping(Mapping, [{<<"a">>, Possible}
+                                       ,{<<"b">>, Possible}
+                                       ,{<<"c">>, Possible}
+                                       ,{<<"d">>, Possible}
+                                       ,{<<"e">>, Possible}
+                                       ,{<<"f">>, Possible}
+                                       ,{<<"g">>, Possible}
+                                       ]),
+    map_signal_to_segment(Signals, TryAgainSignals, Mapping1);
+map_signal_to_segment([Signal | Signals], TryAgainSignals, Mapping) ->
+    map_signal_to_segment(Signals, [Signal | TryAgainSignals], Mapping).
+
+add_to_mapping(Mapping, []) -> Mapping;
+add_to_mapping(Mapping, [{Segment, SignalWires} | Outputs]) ->
+    case maps:get(Segment, Mapping, 'undefined') of
+        'undefined' ->
+            add_to_mapping(Mapping#{Segment => SignalWires}, Outputs);
+        SWs ->
+            add_to_mapping(Mapping#{Segment => sets:intersection(SWs, SignalWires)}
+                          ,Outputs
+                          )
+    end.
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
@@ -147,3 +282,43 @@ process_line(Line) ->
     {binary:split(SignalPatterns, <<" ">>, ['global'])
     ,binary:split(OutputValue, <<" ">>, ['global'])
     }.
+
+signals: [<<"be">>,<<"cfbegad">>,<<"cbdgef">>,<<"fgaecd">>,<<"cgeb">>,
+          <<"fdcge">>,<<"agebfd">>,<<"fecdb">>,<<"fabcd">>,<<"edb">>]
+[lists:sort(binary_to_list(Signal)) || Signal <- Signals] =>
+
+["be" => 1 => "ac"
+,"abcdefg"
+,"bcdefg"
+,"acdefg"
+,"bceg" => 4 => "bcdf"
+,"cdefg"
+,"abdefg"
+,"bcdef"
+,"abcdf"
+,"bde" => 7 => "acf"
+]
+
+sets:to_list(sets:subtract(sets:from_list("bde"), sets:from_list("be"))).
+"d"
+
+model => signal
+"a"  =>   "d"
+
+#{0 => "abcefg"
+ ,1 => "ac"
+ ,2 => "acdeg"
+ ,3 => "acdfg"
+ ,4 => "bcdf"
+ ,5 => "abdfg"
+ ,6 => "abdefg"
+ ,7 => "acf"
+ ,8 => "abcdefg"
+ ,9 => "abcdfg"
+ }
+
+outputs: [<<"fdgacbe">>,<<"cefdb">>,<<"cefbgd">>,<<"gcbe">>]
+map: #{<<"a">> => "bed",<<"b">> => "cbeg",<<"c">> => "be",<<"d">> => "cbeg",
+       <<"e">> => "cfbeadg",<<"f">> => "be",<<"g">> => "cfbeadg"}
+try: [<<"fabcd">>,<<"fecdb">>,<<"agebfd">>,<<"fdcge">>,<<"fgaecd">>,
+      <<"cbdgef">>]
