@@ -330,6 +330,55 @@
 %% cavern, simulate 100 steps. How many total flashes are there after
 %% 100 steps?
 
+%% --- Part Two ---
+
+%% It seems like the individual flashes aren't bright enough to
+%% navigate. However, you might have a better option: the flashes seem
+%% to be synchronizing!
+
+%% In the example above, the first time all octopuses flash
+%% simultaneously is step 195:
+
+%% After step 193:
+%% 5877777777
+%% 8877777777
+%% 7777777777
+%% 7777777777
+%% 7777777777
+%% 7777777777
+%% 7777777777
+%% 7777777777
+%% 7777777777
+%% 7777777777
+
+%% After step 194:
+%% 6988888888
+%% 9988888888
+%% 8888888888
+%% 8888888888
+%% 8888888888
+%% 8888888888
+%% 8888888888
+%% 8888888888
+%% 8888888888
+%% 8888888888
+
+%% After step 195:
+%% 0000000000
+%% 0000000000
+%% 0000000000
+%% 0000000000
+%% 0000000000
+%% 0000000000
+%% 0000000000
+%% 0000000000
+%% 0000000000
+%% 0000000000
+
+%% If you can calculate the exact moments when the octopuses will all
+%% flash simultaneously, you should be able to navigate through the
+%% cavern. What is the first step during which all octopuses flash?
+
 main(_) ->
     Input = read_input("p11.txt"),
     p11_1(Input),
@@ -409,7 +458,15 @@ energize_adjacent({X, Y}, {Energies, XYs}) ->
 energy_plus_1(_XY, Energy) -> Energy+1.
 
 p11_2(Input) ->
-    Input.
+    Step = find_simul_flash(Input, 1),
+    io:format("all flashed on step ~p~n", [Step]).
+
+find_simul_flash(Energies, Step) ->
+    {NewEnergies, _} = step(Energies, 0),
+    case lists:all(fun(E) -> E=:=0 end, maps:values(NewEnergies)) of
+        'true' -> Step;
+        'false' -> find_simul_flash(NewEnergies, Step+1)
+    end.
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
