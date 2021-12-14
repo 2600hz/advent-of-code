@@ -234,8 +234,11 @@ next_verticies(Vertex
                             ),
     Vs.
 
-has_small_cave_been_visited(<<L:8, _/binary>> = Vertex, CurrentPath)
-  when L >= $a andalso L =< $z ->
+has_small_cave_been_visited(Vertex, CurrentPath) ->
+    is_small_cave(Vertex)
+        andalso has_been_visited(Vertex, CurrentPath).
+
+has_been_visited(Vertex, CurrentPath) ->
     case {lists:keyfind(Vertex, 1, CurrentPath) % visiting
          ,lists:keyfind(Vertex, 2, CurrentPath) % visited
          }
@@ -244,9 +247,10 @@ has_small_cave_been_visited(<<L:8, _/binary>> = Vertex, CurrentPath)
             'true';
         _F ->
             'false'
-    end;
-has_small_cave_been_visited(_BigCave, _CurrentPath) ->
-    'false'.
+    end.
+
+is_small_cave(<<L:8, _/binary>>) ->
+    L >= $a andalso L =< $z.
 
 maybe_remove_small_cave(<<"start">>, {Vs, Vertex, CurrentPath}) ->
     {Vs, Vertex, CurrentPath};
