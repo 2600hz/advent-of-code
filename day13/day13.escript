@@ -148,18 +148,27 @@
 %% How many dots are visible after completing just the first fold
 %% instruction on your transparent paper?
 
+%% --- Part Two ---
+
+%% Finish folding the transparent paper according to the
+%% instructions. The manual says the code is always eight capital
+%% letters.
+
+%% What code do you use to activate the infrared thermal imaging
+%% camera system?
+
 main(_) ->
     Input = read_input("p13.txt"),
     p13_1(Input),
     p13_2(Input).
 
 p13_1({Dots, [FirstFold | _]}) ->
-    Fold = fold(Dots, FirstFold),
+    Fold = fold(FirstFold, Dots),
     io:format("after fold: ~p dots~n", [count_dots(Fold)]).
 
-fold(Dots, {$x, Position}) ->
+fold({$x, Position}, Dots) ->
     fold_left(Dots, Position);
-fold(Dots, {$y, Position}) ->
+fold({$y, Position}, Dots) ->
     fold_up(Dots, Position).
 
 %% Position is X coordinate
@@ -187,8 +196,9 @@ fold_up_position({X, Y}, $#, {Dots, YPosition}) when YPosition < Y ->
     };
 fold_up_position(_XY, _V, Acc) -> Acc.
 
-p13_2(Input) ->
-    Input.
+p13_2({Dots, Folds}) ->
+    Folded = lists:foldl(fun fold/2, Dots, Folds),
+    pp_dots(Folded).
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
