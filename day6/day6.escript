@@ -147,81 +147,25 @@ procreate_prog(Fish, {Days, NextGen}) ->
     {Days, [FirstBornDOB | RestDOBs] ++ NextGen}.
 
 p6_2(FishPop) ->
-    Days = 80,
-    {TimeUs, Pop} = timer:tc(fun count_pop1/2, [FishPop, Days-1]),
+    Days = 22,
+    {TimeUs, Pop} = timer:tc(fun count_pop1/2, [FishPop, Days]),
     io:format("~p ms: after ~p days, ~p fish~n", [TimeUs div 1000, Days, Pop]).
 
-count_pop1(InitPop, Days) ->
-    %% io:format("pop: ~p~n", [InitPop]),
-    {Days, _Memoize, FishPop} =
-        lists:foldl(fun procreate1/2, {Days, #{}, 0}, InitPop),
-    FishPop.
+count_pop1(FishPop, Days) ->
+    ProgenyChart = calc_descendants(Days),
+    io:format("prog: ~p~n", [ProgenyChart]),
+    lists:sum([maps:get(Fish, ProgenyChart)+1 || Fish <- FishPop]).
 
-%% Fish starts at 3, on day 4 a second-gen starts at 8
-%% initial Fish will procreate every 7 days until end of Days
-procreate1(Fish, {Days, Calculated, FishPop}) ->
-    case maps:get({0, Fish}, Calculated, 'undefined') of
-        'undefined' ->
-            procreate1(Fish, Days, Calculated, FishPop);
-        N ->
-            %% io:format("fish ~p: memoized ~p to ~p~n", [{0, Fish}, N, FishPop]),
-            {Days, Calculated, FishPop + N}
-    end.
+calc_descendants(Days) ->
+    calc_descendants(Days, Days, #{}).
 
-procreate1(Fish, Days, Calculated, FishPop) ->
-    ChildrenDOBs = lists:seq(Fish+1, Days, 7),
-    %% io:format("fish ~p: pop: ~p~n", [{0, Fish}, ChildrenDOBs]),
-    {Descendants, NextCalc} = count_progeny(Days, ChildrenDOBs, Calculated, 0),
-    %% io:format("fish ~p: descendants: ~p~n", [{0, Fish}, Descendants]),
-    %% io:format("adding ~p -> ~p to ~p~n", [{0, Fish}, Descendants, NextCalc]),
-    %% io:format("fish pop: adding ~p to ~p~n", [Descendants, FishPop]),
-    {Days, NextCalc#{{0, Fish} => Descendants+1}, FishPop + Descendants+1}.
-
-%% CurrGen - Dates of birth
-count_progeny(_Days, [], Calculated, FishCount) ->
-    %% io:format("    counted progeny: ~p~n", [FishCount]),
-    {FishCount, Calculated};
-count_progeny(Days, [Child | Children], Calculated, FishCount) ->
-    {Days, NewCalculated, NextCount} =
-        procreate_progeny(Child, {Days, Calculated, 0}),
-    %% io:format("  adding child ~p with ~p descendants~n", [Child, NextCount]),
-    %% io:format("  fish pop: adding ~p to ~p~n", [NextCount+1, FishCount]),
-    count_progeny(Days, Children, NewCalculated, FishCount + NextCount+1).
-
-%%   remove the 9 days before first procreate
-%%   then generate a sequence every 7 days for next gen
-procreate_progeny(Fish, {Days, Calculated, NextCount}) when Fish+9 > Days ->
-    %% io:format("  fish ~p: '1' added to ~p~n", [Fish, Calculated]),
-    {Days, Calculated#{Fish => 1}, NextCount};
-procreate_progeny(Fish, {Days, Calculated, NextCount}) ->
-    case maps:get(Fish, Calculated, 'undefined') of
-        'undefined' ->
-            procreate_progeny(Fish, Days, Calculated, NextCount);
-        Count ->
-            %% io:format("  fish ~p precalc: ~p~n", [Fish, Count]),
-            {Days, Calculated, NextCount+Count}
-    end.
-
-procreate_progeny(Fish, Days, Calculated, NextCount) ->
-    DOBs =
-        case Fish+9 of
-            FirstBornDOB when FirstBornDOB < Days ->
-                [FirstBornDOB | lists:seq(FirstBornDOB+7, Days, 7)];
-            _Day -> []
-        end,
-    Children = length(DOBs),
-
-    %% io:format("  fish ~p has pop: ~w~n", [Fish, DOBs]),
-
-    %% count each child's progeny
-    {SubCount, NextCalc} = count_progeny(Days, DOBs, Calculated, 0),
-
-    %% io:format("  fish ~p has ~p descendants~n", [Fish, SubCount]),
-    %% io:format("  added ~p => ~p to ~p~n", [Fish, Children+SubCount, NextCalc]),
-    {Days
-    ,NextCalc#{Fish=>Children+SubCount}
-    ,NextCount+Children
-    }.
+calc_descendants(_Days, 0, Acc) -> Acc;
+calc_descendants(Days, Day, Acc) when Day+9 >= Days ->
+    calc_descendants(Days, Day-1, Acc#{Day => 1});
+calc_descendants(Days, Day, Acc) ->
+    Children = lists:seq(Day+9, Days, 7),
+    Descendants = lists:sum([maps:get(Child, Acc) || Child <- Children]),
+    calc_descendants(Days, Day-1, Acc#{Day => Descendants + 2}).
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
