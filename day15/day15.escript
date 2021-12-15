@@ -99,7 +99,7 @@ check_neighbor({NX, NY}, {Risks, Start, End, OpenNodes, ClosedNodes}=Acc) ->
             Neighbor = #node{xy={NX, NY}
                             ,cost=Cost
                             ,parent=Parent
-                            ,f=Cost+PF%% heuristic(Start, End, {NX, NY}, Cost)
+                            ,f=Cost+PF %% cumulative cost of risks so far
                             },
 
             case lists:keyfind({NX, NY}, #node.xy, ClosedNodes) of
