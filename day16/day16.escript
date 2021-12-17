@@ -191,6 +191,62 @@
 %% Decode the structure of your hexadecimal-encoded BITS transmission;
 %% what do you get if you add up the version numbers in all packets?
 
+%% --- Part Two ---
+
+%% Now that you have the structure of your transmission decoded, you
+%% can calculate the value of the expression it represents.
+
+%% Literal values (type ID 4) represent a single number as described
+%% above. The remaining type IDs are more interesting:
+
+%%     Packets with type ID 0 are sum packets - their value is the sum
+%%     of the values of their sub-packets. If they only have a single
+%%     sub-packet, their value is the value of the sub-packet.
+
+%%     Packets with type ID 1 are product packets - their value is the
+%%     result of multiplying together the values of their
+%%     sub-packets. If they only have a single sub-packet, their value
+%%     is the value of the sub-packet.
+
+%%     Packets with type ID 2 are minimum packets - their value is the
+%%     minimum of the values of their sub-packets.
+
+%%     Packets with type ID 3 are maximum packets - their value is the
+%%     maximum of the values of their sub-packets.
+
+%%     Packets with type ID 5 are greater than packets - their value
+%%     is 1 if the value of the first sub-packet is greater than the
+%%     value of the second sub-packet; otherwise, their value is
+%%     0. These packets always have exactly two sub-packets.
+
+%%     Packets with type ID 6 are less than packets - their value is 1
+%%     if the value of the first sub-packet is less than the value of
+%%     the second sub-packet; otherwise, their value is 0. These
+%%     packets always have exactly two sub-packets.
+
+%%     Packets with type ID 7 are equal to packets - their value is 1
+%%     if the value of the first sub-packet is equal to the value of
+%%     the second sub-packet; otherwise, their value is 0. These
+%%     packets always have exactly two sub-packets.
+
+%% Using these rules, you can now work out the value of the outermost
+%% packet in your BITS transmission.
+
+%% For example:
+
+%%     C200B40A82 finds the sum of 1 and 2, resulting in the value 3.
+%%     04005AC33890 finds the product of 6 and 9, resulting in the value 54.
+%%     880086C3E88112 finds the minimum of 7, 8, and 9, resulting in the value 7.
+
+%%     CE00C43D881120 finds the maximum of 7, 8, and 9, resulting in the value 9.
+%%     D8005AC2A8F0 produces 1, because 5 is less than 15.
+%%     F600BC2D8F produces 0, because 5 is not greater than 15.
+%%     9C005AC2F8F0 produces 0, because 5 is not equal to 15.
+%%     9C0141080250320F1802104A08 produces 1, because 1 + 3 = 2 * 2.
+
+%% What do you get if you evaluate the expression represented by your
+%% hexadecimal-encoded BITS transmission?
+
 main(_) ->
     Input = read_input("p16.txt"),
     p16_1(Input),
@@ -213,7 +269,7 @@ p16_1(Packet) ->
     Vsns = add_vsns(Payload, 0),
     io:format("vsns: ~p~n", [Vsns]).
 
-add_vsns(#{version := Vsn, subpackets := Payloads}, Vsns) ->
+add_vsns(#{version := Vsn, subpayloads := Payloads}, Vsns) ->
     lists:foldl(fun add_vsns/2, Vsns+Vsn, Payloads);
 add_vsns(#{version := Vsn}, Vsns) ->
     Vsns + Vsn.
@@ -223,12 +279,20 @@ decode_packet(<<Version:3
                ,Rest/bitstring
               >>
              ) ->
-    decode_packet(TypeId, Rest, #{version => Version, type_id => TypeId}).
+    decode_packet(Rest, #{version => Version, type_id => TypeId}).
 
+-define(TYPE_SUM, 0).
+-define(TYPE_PRODUCT, 1).
+-define(TYPE_MINIMUM, 2).
+-define(TYPE_MAXIMUM, 3).
 -define(TYPE_LITERAL, 4).
-decode_packet(?TYPE_LITERAL, Rest, Payload) ->
+-define(TYPE_GT, 5).
+-define(TYPE_LT, 6).
+-define(TYPE_EQ, 7).
+
+decode_packet(Rest, #{type_id := ?TYPE_LITERAL}=Payload) ->
     decode_literal(Rest, Payload);
-decode_packet(_TypeOperator, Rest, Payload) ->
+decode_packet(Rest, Payload) ->
     decode_operator(Rest, Payload).
 
 decode_literal(Rest, Payload) ->
@@ -254,7 +318,7 @@ decode_operator(<<1:1, SubPacketBitLength:11, Rest/bitstring>>, Payload) ->
 
 parse_subpackets_length(BitLength, Packet, Payload) ->
     <<SubPackets:BitLength/bitstring, Rest/bitstring>> = Packet,
-    {Payload#{subpackets => parse_subpackets_length(SubPackets)}, Rest}.
+    {Payload#{subpayloads => parse_subpackets_length(SubPackets)}, Rest}.
 
 parse_subpackets_length(SubPackets) ->
     parse_subpackets_length(SubPackets, []).
@@ -267,7 +331,7 @@ parse_subpackets_length(SubPackets, Subs) ->
 
 parse_subpackets_count(Count, Packet, Payload) ->
     {Payloads, Rest} = parse_subpackets_by_count(Count, Packet),
-    {Payload#{subpackets => Payloads}, Rest}.
+    {Payload#{subpayloads => Payloads}, Rest}.
 
 parse_subpackets_by_count(Count, Packet) ->
     parse_subpackets_by_count(Count, Packet, []).
@@ -278,8 +342,62 @@ parse_subpackets_by_count(Count, Packet, Payloads) ->
     {Payload, Rest} = decode_packet(Packet),
     parse_subpackets_by_count(Count-1, Rest, [Payload | Payloads]).
 
-p16_2(Input) ->
-    Input.
+p16_2(Packet) ->
+    {Payload, _Rest} = decode_packet(Packet),
+    Evald = eval_payload(Payload),
+    io:format("eval'd: ~p~n", [Evald]).
+
+eval_payload(#{type_id := ?TYPE_LITERAL, literal := L}) -> L;
+eval_payload(#{type_id := ?TYPE_SUM
+              ,subpayloads := Payloads
+              }
+            ) ->
+    eval_args(fun erlang:'+'/2, 0, Payloads);
+eval_payload(#{type_id := ?TYPE_PRODUCT
+              ,subpayloads := Payloads
+              }
+            ) ->
+    eval_args(fun erlang:'*'/2, 1, Payloads);
+eval_payload(#{type_id := ?TYPE_MINIMUM
+              ,subpayloads := [Payload | Payloads]
+              }
+            ) ->
+    eval_args(fun erlang:min/2, eval_payload(Payload), Payloads);
+eval_payload(#{type_id := ?TYPE_MAXIMUM
+              ,subpayloads := [Payload | Payloads]
+              }
+            ) ->
+    eval_args(fun erlang:max/2, eval_payload(Payload), Payloads);
+eval_payload(#{type_id := ?TYPE_GT
+              ,subpayloads := [First, Second]
+              }
+            ) ->
+    case eval_payload(First) > eval_payload(Second) of
+        'true' -> 1;
+        'false' -> 0
+    end;
+eval_payload(#{type_id := ?TYPE_LT
+              ,subpayloads := [First, Second]
+              }
+            ) ->
+    case eval_payload(First) < eval_payload(Second) of
+        'true' -> 1;
+        'false' -> 0
+    end;
+eval_payload(#{type_id := ?TYPE_EQ
+              ,subpayloads := [First, Second]
+              }
+            ) ->
+    case eval_payload(First) =:= eval_payload(Second) of
+        'true' -> 1;
+        'false' -> 0
+    end.
+
+eval_args(_Fun, Acc, []) -> Acc;
+eval_args(Fun, Acc, [Payload]) ->
+    Fun(Acc, eval_payload(Payload));
+eval_args(Fun, Acc, [Payload | Payloads]) ->
+    eval_args(Fun, Fun(Acc, eval_payload(Payload)), Payloads).
 
 read_input(File) ->
     {'ok', Lines} = file:read_file(File),
