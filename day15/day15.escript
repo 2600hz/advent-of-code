@@ -210,22 +210,23 @@ p15_1(#{max_x:=MaxX
 -record(node, {xy, cost, parent, f}).
 
 a_star(Risks, Start, End) ->
-    io:format("from ~p to ~p: ", [Start, End]),
     OpenNodes = [#node{xy=Start
                       ,cost=get_cost(Start, Risks)
                       ,parent='undefined'
                       ,f=0
-                      }],
+                      }
+                ],
     ClosedNodes = [],
     a_star(Risks, Start, End, OpenNodes, ClosedNodes).
 
 a_star(_Risks, _Start, _End, [], ClosedNodes) ->
     io:format("no path through~n", []),
     lists:foldl(fun(#node{cost=Cost}, Acc) -> [Cost | Acc] end, [], ClosedNodes);
-a_star(_Risks, Start, End, [#node{xy=End}=Node | _OpenNodes], _ClosedNodes) ->
-    end_goal(Start, Node);
+a_star(_Risks, _Start, End, [#node{xy=End, f=Cost} | _OpenNodes], _ClosedNodes) ->
+    [Cost];
 a_star(Risks, Start, End, OpenNodes, ClosedNodes) ->
     [#node{xy={X, Y}}=CurrentNode | ONs] = lists:keysort(#node.f, OpenNodes),
+
     CNs = [CurrentNode | ClosedNodes],
 
     Neighbors = [{X-1, Y}, {X+1, Y}, {X, Y-1}, {X, Y+1}],
@@ -245,7 +246,7 @@ check_neighbor({NX, NY}, {Risks, Start, End, OpenNodes, ClosedNodes}=Acc) ->
             Neighbor = #node{xy={NX, NY}
                             ,cost=Cost
                             ,parent=Parent
-                            ,f=heuristic(Start, End, {NX, NY}, PF + Cost) %% cumulative cost of risks so far
+                            ,f=PF + Cost %% heuristic(Start, End, {NX, NY}, PF + Cost) %% cumulative cost of risks so far
                             },
 
             case lists:keyfind({NX, NY}, #node.xy, ClosedNodes) of
@@ -257,7 +258,7 @@ check_neighbor({NX, NY}, {Risks, Start, End, OpenNodes, ClosedNodes}=Acc) ->
 
 maybe_add_neighbor(OpenNodes, #node{xy=NXY, f=NF}=Neighbor) ->
     case lists:keyfind(NXY, #node.xy, OpenNodes) of
-        #node{f=OpenF} when NF >= OpenF -> OpenNodes;
+        #node{f=OpenF} -> OpenNodes; % when NF >= OpenF
         _ -> [Neighbor | OpenNodes]
     end.
 
@@ -272,13 +273,6 @@ heuristic({StartX, StartY}, {EndX, EndY}, {NX, NY}, Cost) ->
 %%     math:sqrt(math:pow(StartX-NX, 2)+math:pow(StartY-NY, 2))
 %%         + math:sqrt(math:pow(NX-EndX, 2)+math:pow(NY-EndY, 2))
 %%         + Cost.
-
-end_goal(Start, CurrentNode) ->
-    end_goal(Start, CurrentNode, []).
-
-end_goal(Start, #node{xy=Start}, Path) -> Path;
-end_goal(Start, #node{cost=Cost, parent=Parent}, Path) ->
-    end_goal(Start, Parent, [Cost | Path]).
 
 p15_2(#{max_x:=TileX
        ,max_y:=TileY
