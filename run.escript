@@ -18,7 +18,12 @@ run_mod(Module) ->
     M = list_to_atom(Module),
     case ensure_loaded(M) andalso erlang:function_exported(M, 'run', 0) of
         'false' -> 'ok';
-        'true' -> M:run()
+        'true' ->
+            Start = erlang:monotonic_time(),
+            M:run(),
+            End = erlang:monotonic_time(),
+            Elapsed = erlang:convert_time_unit(End-Start, 'native', 'microsecond'),
+            io:format("~n~p: ~pus~n", [M, Elapsed])
     end.
 
 ensure_loaded(M) ->
