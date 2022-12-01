@@ -90,16 +90,21 @@
         ]).
 
 run() ->
-    part1(),
-    part2().
+    Inventory = input(<<"input">>),
+    part1(Inventory),
+    part2(Inventory).
 
 part1() ->
-    Inventory = input(<<"input">>),
+    part1(input(<<"input">>)).
+
+part1(Inventory) ->
     {Elf, Calories} = maps:fold(fun most_carried/3, {0, 0}, Inventory),
     io:format("elf ~p is carrying ~p calories~n", [Elf, Calories]).
 
 part2() ->
-    Inventory = input(<<"input">>),
+    part2(input(<<"input">>)).
+
+part2(Inventory) ->
     Counts = [{lists:sum(CalorieList), Elf}
               || {Elf, CalorieList} <- maps:to_list(Inventory)
              ],
