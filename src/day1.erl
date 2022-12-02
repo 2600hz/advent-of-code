@@ -90,19 +90,19 @@
         ]).
 
 run() ->
-    Inventory = input(<<"input">>),
+    Inventory = input(),
     part1(Inventory),
     part2(Inventory).
 
 part1() ->
-    part1(input(<<"input">>)).
+    part1(input()).
 
 part1(Inventory) ->
     {Elf, Calories} = maps:fold(fun most_carried/3, {0, 0}, Inventory),
     io:format("elf ~p is carrying ~p calories~n", [Elf, Calories]).
 
 part2() ->
-    part2(input(<<"input">>)).
+    part2(input()).
 
 part2(Inventory) ->
     Counts = [{lists:sum(CalorieList), Elf}
@@ -120,11 +120,8 @@ most_carried(Elf, CalorieList, {E, C}) ->
         _ -> {E, C}
     end.
 
-input(Extension) ->
-    File = <<?MODULE_STRING, $., Extension/binary>>,
-    {'ok', CWD} = file:get_cwd(),
-    {'ok', Bin} = file:read_file(filename:join([CWD, "priv", File])),
-
+input() ->
+    Bin = input:input(<<?MODULE_STRING>>),
     {_Elf, Inventory} = lists:foldl(fun calories_carried/2
                                    ,{1, #{}}
                                    ,binary:split(Bin, <<$\n>>, ['global', 'trim'])
