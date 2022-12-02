@@ -61,42 +61,83 @@
 %% What would your total score be if everything goes exactly according
 %% to your strategy guide?
 
+%% --- Part Two ---
+
+%% The Elf finishes helping with the tent and sneaks back over to
+%% you. "Anyway, the second column says how the round needs to end: X
+%% means you need to lose, Y means you need to end the round in a
+%% draw, and Z means you need to win. Good luck!"
+
+%% The total score is still calculated in the same way, but now you
+%% need to figure out what shape to choose so the round ends as
+%% indicated. The example above now goes like this:
+
+%%     In the first round, your opponent will choose Rock (A), and you
+%%     need the round to end in a draw (Y), so you also choose
+%%     Rock. This gives you a score of 1 + 3 = 4.
+
+%%     In the second round, your opponent will choose Paper (B), and
+%%     you choose Rock so you lose (X) with a score of 1 + 0 = 1.
+
+%%     In the third round, you will defeat your opponent's Scissors
+%%     with Rock for a score of 1 + 6 = 7.
+
+%% Now that you're correctly decrypting the ultra top secret strategy
+%% guide, you would get a total score of 12.
+
+%% Following the Elf's instructions for the second column, what would
+%% your total score be if everything goes exactly according to your
+%% strategy guide?
+
 -export([run/0
         ,part1/0
         ,part2/0
         ]).
 
 run() ->
-    Strategy = input(),
-    part1(Strategy),
-    part2(Strategy).
+    part1(part1_input()),
+    part2(part2_input()).
 
 part1() ->
-    part1(input()).
+    part1(part1_input()).
 
 part2() ->
-    part2(input()).
+    part2(part2_input()).
 
 part1(Strategy) ->
     Total = lists:foldl(fun play_round/2, 0, Strategy),
     io:format("total score: ~p~n", [Total]).
 
 part2(Strategy) ->
-    Strategy.
+    Total = lists:foldl(fun choose_outcome/2, 0, Strategy),
+    io:format("total score: ~p~n", [Total]).
 
-input() ->
-    Bin = input:input(<<?MODULE_STRING>>),
+part1_input() ->
+    Bin = input(),
     [{decode_choice(O), decode_choice(M)}
      || <<O:1/binary, " ", M:1/binary>> <- binary:split(Bin, <<$\n>>, ['global', 'trim'])
     ].
 
-decode_choice(Rock) when <<"A">> =:= Rock; <<"X">> =:= Rock -> 'rock';
-decode_choice(Paper) when <<"B">> =:= Paper; <<"Y">> =:= Paper -> 'paper';
-decode_choice(Sc) when <<"C">> =:= Sc; <<"Z">> =:= Sc -> 'scissors'.
+part2_input() ->
+    Bin = input(),
+    [{decode_choice(O), decode_outcome(M)}
+     || <<O:1/binary, " ", M:1/binary>> <- binary:split(Bin, <<$\n>>, ['global', 'trim'])
+    ].
 
-shape_score('rock') -> 1;
-shape_score('paper') -> 2;
-shape_score('scissors') -> 3.
+input() ->
+    input:input(<<?MODULE_STRING>>).
+
+decode_choice(Rock) when <<"A">> =:= Rock; <<"X">> =:= Rock -> 'r';
+decode_choice(Paper) when <<"B">> =:= Paper; <<"Y">> =:= Paper -> 'p';
+decode_choice(Sc) when <<"C">> =:= Sc; <<"Z">> =:= Sc -> 's'.
+
+decode_outcome(<<"X">>) -> 'lose';
+decode_outcome(<<"Y">>) -> 'draw';
+decode_outcome(<<"Z">>) -> 'win'.
+
+shape_score('r') -> 1;
+shape_score('p') -> 2;
+shape_score('s') -> 3.
 
 outcome_score('lose') -> 0;
 outcome_score('draw') -> 3;
@@ -105,9 +146,32 @@ outcome_score('win') -> 6.
 play_round({Opponent, Me}, Score) ->
     Score + outcome_score(round_result(Opponent, Me)) + shape_score(Me).
 
+choose_outcome({Opponent, 'draw'}, Score) ->
+    Score + outcome_score('draw') + shape_score(Opponent);
+choose_outcome({Opponent, 'lose'}, Score) ->
+    Score + outcome_score('lose') + shape_score(loses(Opponent));
+choose_outcome({Opponent, 'win'}, Score) ->
+    Score + outcome_score('win') + shape_score(beats(Opponent)).
+
+loses('r') -> 's';
+loses('p') -> 'r';
+loses('s') -> 'p'.
+
+beats('r') -> 'p';
+beats('p') -> 's';
+beats('s') -> 'r'.
+
 %% opponent, my play
 round_result(Same, Same) -> 'draw';
-round_result('rock', 'paper') -> 'win';
-round_result('paper', 'scissors') -> 'win';
-round_result('scissors', 'rock') -> 'win';
-round_result(_Else, _Otherwise) -> 'lose'.
+
+%% if i play rock
+round_result('s', 'r') -> 'win';
+round_result('p', 'r') -> 'lose';
+
+%% if i play paper
+round_result('r', 'p') -> 'win';
+round_result('s', 'p') -> 'lose';
+
+%% if i play scissors
+round_result('p', 's') -> 'win';
+round_result('r', 's') -> 'lose'.
