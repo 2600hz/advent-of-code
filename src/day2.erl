@@ -95,14 +95,15 @@
         ]).
 
 run() ->
-    part1(part1_input()),
-    part2(part2_input()).
+    Strategy = input(),
+    part1(Strategy),
+    part2(Strategy).
 
 part1() ->
-    part1(part1_input()).
+    part1(input()).
 
 part2() ->
-    part2(part2_input()).
+    part2(input()).
 
 part1(Strategy) ->
     Total = lists:foldl(fun play_round/2, 0, Strategy),
@@ -112,20 +113,11 @@ part2(Strategy) ->
     Total = lists:foldl(fun choose_outcome/2, 0, Strategy),
     io:format("total score: ~p~n", [Total]).
 
-part1_input() ->
-    Bin = input(),
-    [{decode_choice(O), decode_choice(M)}
-     || <<O:1/binary, " ", M:1/binary>> <- binary:split(Bin, <<$\n>>, ['global', 'trim'])
-    ].
-
-part2_input() ->
-    Bin = input(),
-    [{decode_choice(O), decode_outcome(M)}
-     || <<O:1/binary, " ", M:1/binary>> <- binary:split(Bin, <<$\n>>, ['global', 'trim'])
-    ].
-
 input() ->
-    input:input(<<?MODULE_STRING>>).
+    Bin = input:input(<<?MODULE_STRING>>),
+    [{decode_choice(O), decode_choice(M), decode_outcome(M)}
+     || <<O:1/binary, " ", M:1/binary>> <- binary:split(Bin, <<$\n>>, ['global', 'trim'])
+    ].
 
 decode_choice(Rock) when <<"A">> =:= Rock; <<"X">> =:= Rock -> 'r';
 decode_choice(Paper) when <<"B">> =:= Paper; <<"Y">> =:= Paper -> 'p';
@@ -143,14 +135,14 @@ outcome_score('lose') -> 0;
 outcome_score('draw') -> 3;
 outcome_score('win') -> 6.
 
-play_round({Opponent, Me}, Score) ->
+play_round({Opponent, Me, _Outcome}, Score) ->
     Score + outcome_score(round_result(Opponent, Me)) + shape_score(Me).
 
-choose_outcome({Opponent, 'draw'}, Score) ->
+choose_outcome({Opponent, _Me, 'draw'}, Score) ->
     Score + outcome_score('draw') + shape_score(Opponent);
-choose_outcome({Opponent, 'lose'}, Score) ->
+choose_outcome({Opponent, _Me, 'lose'}, Score) ->
     Score + outcome_score('lose') + shape_score(loses(Opponent));
-choose_outcome({Opponent, 'win'}, Score) ->
+choose_outcome({Opponent, _Me, 'win'}, Score) ->
     Score + outcome_score('win') + shape_score(beats(Opponent)).
 
 loses('r') -> 's';
