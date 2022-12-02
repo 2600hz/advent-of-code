@@ -5,8 +5,6 @@
 
 -export([main/1]).
 
-main([Module]) ->
-    run_mod(Module);
 main(Modules) ->
     lists:foreach(fun log_and_run_mod/1, Modules).
 

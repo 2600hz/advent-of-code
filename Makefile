@@ -7,7 +7,6 @@ compile: ebin priv $(BEAMS)
 
 .PHONY: run
 run: compile
-	$(info running all modules)
 	@./run.escript $(MODULES)
 
 ebin:
@@ -21,5 +20,4 @@ ebin/%.beam: src/%.erl
 	@erlc -o ebin/ $<
 
 run-%: src/%.erl
-	$(info running $*)
 	@./run.escript $*
