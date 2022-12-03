@@ -19,5 +19,5 @@ ebin/%.beam: src/%.erl
 	$(info compiling $<)
 	@erlc -o ebin/ $<
 
-run-%: src/%.erl
+run-%: ebin/%.beam
 	@./run.escript $*
