@@ -1,8 +1,8 @@
 File.stream!("input.txt")
 |> Stream.map(&String.to_charlist/1)
 |> Stream.map(fn char_list ->
-  first_elf_hand = Enum.at(char_list, 0) - 64
-  second_elf_hand = Enum.at(char_list, 2) - 87
+  first_elf_hand = Enum.at(char_list, 0) - 64   # 1 = Rock, 2 = Paper, 3 = Scissors
+  second_elf_hand = Enum.at(char_list, 2) - 87  # 1 = Rock, 2 = Paper, 3 = Scissors
   outcome_score = case second_elf_hand - first_elf_hand do
     0 -> 3
     1 -> 6
