@@ -9,7 +9,7 @@ def part_two(elves):
     for elf in elves:
         all_sums.append(sum(elf))
     sorted_sums = sorted(all_sums)
-    print(sorted_sums[-1] + sorted_sums[-2] + sorted_sums[-3])
+    return sorted_sums[-1] + sorted_sums[-2] + sorted_sums[-3]
 
 with open('input.txt', 'r') as r:
   raw_array = [line for line in r.readlines()]
@@ -23,4 +23,4 @@ with open('input.txt', 'r') as r:
         curr_group.append(int(line))
 
 print("part 1 solution is {}".format(part_one(groups)))
-part_two(groups)
+print("part 2 solution is {}".format(part_two(groups)))
