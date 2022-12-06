@@ -5,6 +5,10 @@ BEAMS = $(sort $(foreach module,$(SOURCES),ebin/$(shell basename $(module) .erl)
 .PHONY: compile
 compile: ebin priv $(BEAMS)
 
+.PHONY: clean
+clean:
+	rm -f ebin/*.beam
+
 .PHONY: run
 run: compile
 	@./run.escript $(MODULES)
