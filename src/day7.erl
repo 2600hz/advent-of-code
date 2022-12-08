@@ -144,32 +144,28 @@ part1() ->
 part2() ->
     part2(input()).
 
-%% not   84585
-%% not 1155187
-%% not 1324537
-%% not 1492125
 part1(FileSystem) ->
     DU = du(FileSystem),
 
-    io:format("filesystem: ~p~n", [FileSystem]),
-    io:format("du: ~p~n", [DU]),
-    Total = lists:sum([Size || Size <- DU, Size =< 100000]),
+    Total = lists:sum([Size || {_, Size} <- maps:to_list(DU),
+                               Size =< 100000
+                      ]),
 
     io:format("total of dirs under 100,000: ~p~n", [Total]).
 
+du(FileSystem) ->
+    lists:foldl(fun du_fold/2, #{}, FileSystem).
+
+du_fold({_Path, 0}, Acc) -> Acc;
+du_fold({[_Filename | Path], Size}, Acc) ->
+    add_size(Size, Path, Acc).
+
+add_size(_Size, [], Acc) -> Acc;
+add_size(Size, [_|Rest]=Path, Acc) ->
+    PathSize = maps:get(Path, Acc, 0),
+    add_size(Size, Rest, maps:put(Path, PathSize + Size, Acc)).
+
 part2(_Input) -> 'ok'.
-
-du(#inode{size=Size, type='directory', inodes=Inodes}) ->
-    du(Inodes, [Size]).
-
-du(#inode{type='directory', inodes=Inodes}, Acc) ->
-    du(Inodes, Acc);
-du(Inodes, Acc) ->
-    lists:foldl(fun du_fold/2, Acc, Inodes).
-
-du_fold(#inode{type='directory', size=Size, inodes=Inodes}, Acc) ->
-    du(Inodes, [Size | Acc]);
-du_fold(#inode{}, Acc) -> Acc.
 
 input() ->
     Bin = input:input(<<?MODULE_STRING>>),
@@ -178,7 +174,7 @@ input() ->
     FileSystem.
 
 build_filesystem(CLIOutput) ->
-    build_filesystem(CLIOutput, {[<<"/">>], #inode{name = <<"/">>, type='directory'}}).
+    build_filesystem(CLIOutput, {[<<"/">>], []}).
 
 build_filesystem([<<"$ cd /">> | Rest], {_CWD, FileSystem}) ->
     build_filesystem(Rest, {[<<"/">>], FileSystem});
@@ -199,44 +195,8 @@ list_files([File | Rest], Acc) ->
 list_files([], Acc) -> Acc.
 
 add_directory(DirName, {CWD, FileSystem}) ->
-    NewFileSystem = add_inode(new_directory(DirName), lists:reverse(CWD), FileSystem),
-    {CWD, NewFileSystem}.
-
-new_directory(DirName) ->
-    #inode{name=DirName, type='directory'}.
+    {CWD, [{[DirName | CWD], 0} | FileSystem]}.
 
 add_file(File, {CWD, FileSystem}) ->
-    NewFileSystem = add_inode(new_file(File), lists:reverse(CWD), FileSystem),
-    {CWD, NewFileSystem}.
-
-new_file(File) ->
     [Size, Name] = binary:split(File, <<$\ >>),
-    #inode{name=Name, type='file', size=binary_to_integer(Size, 10)}.
-
-add_inode(#inode{size=Size}=Inode
-         ,[]
-         ,#inode{name=_Parent
-                ,size=ParentSize
-                ,inodes=Siblings
-                }=ParentDir
-         ) ->
-    ParentDir#inode{size=ParentSize+Size
-                   ,inodes=[Inode | Siblings]
-                   };
-add_inode(Inode, [Name | Descendants], #inode{name=Name}=CWD) ->
-    add_inode(Inode, Descendants, CWD);
-add_inode(Inode
-         ,[Ancestor | Ancestors]
-         ,#inode{name=_N
-                ,size=CWDSize
-                ,inodes=Inodes
-                }=CWD
-         ) ->
-    %% io:format("going from ~s to ~s->~p: ~p~n", [_N, Ancestor, Ancestors, Inodes]),
-    {'value', #inode{size=ASize, name=Ancestor, type='directory'}=NewCWD, AncestorSiblings}
-        = lists:keytake(Ancestor, #inode.name, Inodes),
-
-    #inode{size=NewASize}=NewAncestor = add_inode(Inode, Ancestors, NewCWD),
-    CWD#inode{size=CWDSize - ASize + NewASize
-             ,inodes=[NewAncestor | AncestorSiblings]
-             }.
+    {CWD, [{[Name | CWD], binary_to_integer(Size, 10)} | FileSystem]}.
