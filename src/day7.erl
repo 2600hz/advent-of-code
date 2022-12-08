@@ -126,27 +126,55 @@
 %% Find all of the directories with a total size of at most
 %% 100000. What is the sum of the total sizes of those directories?
 
+%% --- Part Two ---
+
+%% Now, you're ready to choose a directory to delete.
+
+%% The total disk space available to the filesystem is 70000000. To
+%% run the update, you need unused space of at least 30000000. You
+%% need to find a directory you can delete that will free up enough
+%% space to run the update.
+
+%% In the example above, the total size of the outermost directory
+%% (and thus the total amount of used space) is 48381165; this means
+%% that the size of the unused space must currently be 21618835, which
+%% isn't quite the 30000000 required by the update. Therefore, the
+%% update still requires a directory with total size of at least
+%% 8381165 to be deleted before it can run.
+
+%% To achieve this, you have the following options:
+
+%%     Delete directory e, which would increase unused space by 584.
+%%     Delete directory a, which would increase unused space by 94853.
+%%     Delete directory d, which would increase unused space by 24933642.
+%%     Delete directory /, which would increase unused space by 48381165.
+
+%% Directories e and a are both too small; deleting them would not
+%% free up enough space. However, directories d and / are both big
+%% enough! Between these, choose the smallest: d, increasing unused
+%% space by 24933642.
+
+%% Find the smallest directory that, if deleted, would free up enough
+%% space on the filesystem to run the update. What is the total size
+%% of that directory?
+
 -export([run/0
         ,part1/0
         ,part2/0
         ]).
 
--record(inode, {name, type, size=0, inodes = []}).
-
 run() ->
-    Input = input(),
+    Input = du(input()),
     part1(Input),
     part2(Input).
 
 part1() ->
-    part1(input()).
+    part1(du(input())).
 
 part2() ->
-    part2(input()).
+    part2(du(input())).
 
-part1(FileSystem) ->
-    DU = du(FileSystem),
-
+part1(DU) ->
     Total = lists:sum([Size || {_, Size} <- maps:to_list(DU),
                                Size =< 100000
                       ]),
@@ -165,7 +193,21 @@ add_size(Size, [_|Rest]=Path, Acc) ->
     PathSize = maps:get(Path, Acc, 0),
     add_size(Size, Rest, maps:put(Path, PathSize + Size, Acc)).
 
-part2(_Input) -> 'ok'.
+part2(DU) ->
+    TotalSpace = 70000000,
+    TargetUnused = 30000000,
+
+    UsedSpace = maps:get([<<"/">>], DU),
+
+    UnusedSpace = TotalSpace - UsedSpace,
+
+    ToFree = TargetUnused - UnusedSpace,
+
+    [{Path, DirSize} | _] =
+        lists:dropwhile(fun({_Path, FileSize}) -> FileSize < ToFree end
+                       ,lists:keysort(2, maps:to_list(DU))
+                       ),
+    io:format("deleting ~p: ~p~n", [Path, DirSize]).
 
 input() ->
     Bin = input:input(<<?MODULE_STRING>>),
