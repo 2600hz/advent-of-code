@@ -15,6 +15,6 @@ end)
     set |> MapSet.intersection(acc)
   end)
 end)
-|> Stream.flat_map(fn single_set -> single_set end)
+|> Stream.flat_map(&Function.identity/1)
 |> Enum.sum()
 |> IO.inspect
