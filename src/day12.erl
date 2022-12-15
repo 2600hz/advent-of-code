@@ -55,6 +55,42 @@
 %% What is the fewest steps required to move from your current
 %% position to the location that should get the best signal?
 
+%% --- Part Two ---
+
+%% As you walk up the hill, you suspect that the Elves will want to
+%% turn this into a hiking trail. The beginning isn't very scenic,
+%% though; perhaps you can find a better starting point.
+
+%% To maximize exercise while hiking, the trail should start as low as
+%% possible: elevation a. The goal is still the square marked
+%% E. However, the trail should still be direct, taking the fewest
+%% steps to reach its goal. So, you'll need to find the shortest path
+%% from any square at elevation a to the square marked E.
+
+%% Again consider the example from above:
+
+%% Sabqponm
+%% abcryxxl
+%% accszExk
+%% acctuvwj
+%% abdefghi
+
+%% Now, there are six choices for starting position (five marked a,
+%% plus the square marked S that counts as being at elevation a). If
+%% you start at the bottom-left square, you can reach the goal most
+%% quickly:
+
+%% ...v<<<<
+%% ...vv<<^
+%% ...v>E^^
+%% .>v>>>^^
+%% >^>>>>>^
+
+%% This path reaches the goal in only 29 steps, the fewest possible.
+
+%% What is the fewest steps required to move starting from any square
+%% with elevation a to the location that should get the best signal?
+
 -export([run/0
         ,part1/0
         ,part2/0
@@ -74,19 +110,21 @@ part2() ->
     part2(input()).
 
 part1(#graph{start=Start, goal=Goal, nodes=Nodes}) ->
-    Steps = a_star(Nodes, Goal, [{Start, 0}], []),
+    Steps = a_star(Nodes, Goal, Start),
     io:format("took ~p steps~n", [Steps]).
 
+a_star(Nodes, Goal, Start) ->
+    a_star(Nodes, Goal, [{Start, 0}], #{}).
+
 a_star(_Nodes, Goal, [], Closed) ->
-    {Goal, Steps} = lists:keyfind(Goal, 1, Closed),
-    Steps;
-a_star(Nodes, Goal, [{{X, Y}, Distance}=Current | Open], Closed) ->
+    maps:get(Goal, Closed, 'undefined'); % undefined if no way is found to goal
+a_star(Nodes, Goal, [{{X, Y}, Distance} | Open], Closed) ->
     Height = maps:get({X, Y}, Nodes),
 
     Neighbors = [Neighbor
                  || Neighbor <- [{X-1, Y}, {X+1, Y}, {X, Y-1}, {X, Y+1}],
                     maps:is_key(Neighbor, Nodes), % is it a valid point
-                    'false' =:= lists:keyfind(Neighbor, 1, Closed), % have we added it to closed
+                    'false' =:= maps:is_key(Neighbor, Closed), % if not in closed already
                     maps:get(Neighbor, Nodes) =< Height+1 % is the height close enough
                 ],
 
@@ -95,7 +133,7 @@ a_star(Nodes, Goal, [{{X, Y}, Distance}=Current | Open], Closed) ->
                    ,{Open, Distance}
                    ,Neighbors
                    ),
-    a_star(Nodes, Goal, lists:keysort(2, NewOpen), [Current | Closed]).
+    a_star(Nodes, Goal, lists:keysort(2, NewOpen), Closed#{{X, Y} => Distance}).
 
 add_neighbor(Neighbor, {Open, Distance}) ->
     case lists:keyfind(Neighbor, 1, Open) of
@@ -104,8 +142,26 @@ add_neighbor(Neighbor, {Open, Distance}) ->
         _ -> {Open, Distance}
     end.
 
-part2(_Input) ->
-    'ok'.
+part2(#graph{goal=Goal, nodes=Nodes}) ->
+    [Start | StartingPoints] = maps:fold(fun starting_points/3, [], Nodes),
+    LeastSteps =
+        lists:foldl(fun(StartPoint, Steps) ->
+                            case a_star(Nodes, Goal, StartPoint) of
+                                'undefined' -> Steps;
+                                Fewer when Fewer < Steps -> Fewer;
+                                _More -> Steps
+                            end
+                    end
+                   ,a_star(Nodes, Goal, Start)
+                   ,StartingPoints
+                   ),
+
+    io:format("least steps of ~p~n", [LeastSteps]).
+
+starting_points(XY, 0, Starts) ->
+    [XY | Starts];
+starting_points(_, _, Starts) ->
+    Starts.
 
 input() ->
     HeightMap = binary:split(input:input(<<?MODULE_STRING>>), <<$\n>>, ['global', 'trim']),
