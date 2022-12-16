@@ -1,5 +1,5 @@
 SOURCES = $(wildcard src/*.erl)
-MODULES = $(foreach module,$(SOURCES),$(shell basename $(module) .erl))
+MODULES = $(filter-out day0 input,$(foreach module,$(SOURCES),$(shell basename $(module) .erl)))
 BEAMS = $(sort $(foreach module,$(SOURCES),ebin/$(shell basename $(module) .erl).beam))
 
 .PHONY: compile
@@ -11,7 +11,7 @@ clean:
 
 .PHONY: run
 run: compile
-	@./run.escript $(MODULES)
+	./run.escript $(MODULES)
 
 ebin:
 	@mkdir ebin/
