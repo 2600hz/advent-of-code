@@ -143,23 +143,13 @@ add_neighbor(Neighbor, {Open, Distance}) ->
     end.
 
 part2(#graph{goal=Goal, nodes=Nodes}) ->
-    [Start | StartingPoints] = maps:fold(fun starting_points/3, [], Nodes),
-    LeastSteps =
-        lists:foldl(fun(StartPoint, Steps) ->
-                            case a_star(Nodes, Goal, StartPoint) of
-                                'undefined' -> Steps;
-                                Fewer when Fewer < Steps -> Fewer;
-                                _More -> Steps
-                            end
-                    end
-                   ,a_star(Nodes, Goal, Start)
-                   ,StartingPoints
-                   ),
+    StartingPoints = maps:fold(fun starting_points/3, [], Nodes),
 
-    io:format("least steps of ~p~n", [LeastSteps]).
+    CheatSteps = a_star(Nodes, Goal, StartingPoints, #{}),
+    io:format("least steps of ~p~n", [CheatSteps]).
 
 starting_points(XY, 0, Starts) ->
-    [XY | Starts];
+    [{XY, 0} | Starts];
 starting_points(_, _, Starts) ->
     Starts.
 
