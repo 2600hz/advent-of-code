@@ -73,6 +73,10 @@
 
 %% What is the sum of all of the calibration values?
 
+%% Answers:
+%% Part 1: Calibration values summed: 56465
+%% Part 2: Calibration values summed: 55902
+
 run() ->
     part1(input("day01.txt")),
     part2(input("day01.txt")).
@@ -89,23 +93,23 @@ part2(Input) ->
 
 text_to_number(<<>>) -> 'eof';
 text_to_number(<<"one", Rest/binary>>) ->
-    {<<"ne", Rest/binary>>, $1};
+    {<<"e", Rest/binary>>, $1};
 text_to_number(<<"two", Rest/binary>>) ->
-    {<<"wo", Rest/binary>>, $2};
+    {<<"o", Rest/binary>>, $2};
 text_to_number(<<"three", Rest/binary>>) ->
-    {<<"hree", Rest/binary>>, $3};
+    {<<"e", Rest/binary>>, $3};
 text_to_number(<<"four", Rest/binary>>) ->
-    {<<"our", Rest/binary>>, $4};
+    {<<"r", Rest/binary>>, $4};
 text_to_number(<<"five", Rest/binary>>) ->
-    {<<"ive", Rest/binary>>, $5};
+    {<<"e", Rest/binary>>, $5};
 text_to_number(<<"six", Rest/binary>>) ->
-    {<<"ix", Rest/binary>>, $6};
+    {<<"x", Rest/binary>>, $6};
 text_to_number(<<"seven", Rest/binary>>) ->
-    {<<"even", Rest/binary>>, $7};
+    {<<"n", Rest/binary>>, $7};
 text_to_number(<<"eight", Rest/binary>>) ->
-    {<<"ight", Rest/binary>>, $8};
+    {<<"t", Rest/binary>>, $8};
 text_to_number(<<"nine", Rest/binary>>) ->
-    {<<"ine", Rest/binary>>, $9};
+    {<<"e", Rest/binary>>, $9};
 text_to_number(<<Numeric:8, Rest/binary>>)
   when Numeric > $0, Numeric =< $9 ->
     {Rest, Numeric};
