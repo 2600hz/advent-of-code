@@ -60,6 +60,42 @@
 %% loaded with only 12 red cubes, 13 green cubes, and 14 blue
 %% cubes. What is the sum of the IDs of those games?
 
+%% --- Part Two ---
+
+%% The Elf says they've stopped producing snow because they aren't
+%% getting any water! He isn't sure why the water stopped; however, he
+%% can show you how to get to the water source to check it out for
+%% yourself. It's just up ahead!
+
+%% As you continue your walk, the Elf poses a second question: in each
+%% game you played, what is the fewest number of cubes of each color
+%% that could have been in the bag to make the game possible?
+
+%% Again consider the example games from earlier:
+
+%% Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+%% Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+%% Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+%% Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+%% Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
+
+%%     In game 1, the game could have been played with as few as 4 red, 2 green, and 6 blue cubes. If any color had even one fewer cube, the game would have been impossible.
+%%     Game 2 could have been played with a minimum of 1 red, 3 green, and 4 blue cubes.
+%%     Game 3 must have been played with at least 20 red, 13 green, and 6 blue cubes.
+%%     Game 4 required at least 14 red, 3 green, and 15 blue cubes.
+%%     Game 5 needed no fewer than 6 red, 3 green, and 2 blue cubes in the bag.
+
+%% The power of a set of cubes is equal to the numbers of red, green,
+%% and blue cubes multiplied together. The power of the minimum set of
+%% cubes in game 1 is 48. In games 2-5 it was 12, 1560, 630, and 36,
+%% respectively. Adding up these five powers produces the sum 2286.
+
+%% For each game, find the minimum set of cubes that must have been
+%% present. What is the sum of the power of these sets?
+
+%% Part 1: Sum of Game IDs: 3035
+%% Part 2: Sum of power of sets: 66027
+
 run() ->
     part1(input("day02.txt")),
     part2(input("day02.txt")).
@@ -73,6 +109,13 @@ part1(Input) ->
                    },
     {Sum, _} = lists:foldl(fun games_matching_bag/2, {0, BagContents}, Games),
     io:format("Sum of Game IDs: ~p~n", [Sum]).
+
+part2(Input) ->
+    GameBins = binary:split(Input, <<$\n>>, ['global', 'trim']),
+    Games = lists:reverse(lists:foldl(fun read_game/2, [], GameBins)),
+
+    SumPower = fewest_cubes(Games),
+    io:format("Sum of power of sets: ~p~n", [SumPower]).
 
 games_matching_bag({GameNo, Selections}, {Sum, BagContents}) ->
     case lists:all(fun(Selection) -> selection_matches_bag(Selection, BagContents) end
@@ -92,6 +135,22 @@ selection_matches_bag(Selection, BagContents) ->
              ,Selection
              ).
 
+fewest_cubes(Games) ->
+    lists:foldl(fun fewest_cubes_in_game/2, 0, Games).
+
+fewest_cubes_in_game({_Game, Selections}, SumPower) ->
+    fewest_cubes_in_game(Selections) + SumPower.
+
+fewest_cubes_in_game(Selections) ->
+    {R, G, B} = lists:foldl(fun fewest_cubes_in_selection/2, {0, 0, 0}, Selections),
+    R * G * B.
+
+fewest_cubes_in_selection(Selection, {R, G, B}) ->
+    {max(proplists:get_value(<<"red">>, Selection, 0), R)
+    ,max(proplists:get_value(<<"green">>, Selection, 0), G)
+    ,max(proplists:get_value(<<"blue">>, Selection, 0), B)
+    }.
+
 read_game(Line, Games) ->
     [<<"Game ", N/binary>>, Rest] = binary:split(Line, <<": ">>),
     SelectionBins = binary:split(Rest, <<"; ">>, ['global', 'trim']),
@@ -108,8 +167,6 @@ read_cube(Cube) ->
     [N, Color] = binary:split(Cube, <<" ">>),
     {Color, binary_to_integer(N, 10)}.
 
-part2(Input) ->
-    Input.
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
