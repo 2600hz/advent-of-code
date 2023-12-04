@@ -69,41 +69,103 @@
 %% Take a seat in the large pile of colorful cards. How many points
 %% are they worth in total?
 
-run() ->
-    part1(input("day04.txt")),
-    part2(input("day04_part1.txt")).
+%% --- Part Two ---
 
-part1(Input) ->
-    Cards = parse_cards(Input),
+%% Just as you're about to report your findings to the Elf, one of you
+%% realizes that the rules have actually been printed on the back of
+%% every card this whole time.
+
+%% There's no such thing as "points". Instead, scratchcards only cause
+%% you to win more scratchcards equal to the number of winning numbers
+%% you have.
+
+%% Specifically, you win copies of the scratchcards below the winning
+%% card equal to the number of matches. So, if card 10 were to have 5
+%% matching numbers, you would win one copy each of cards 11, 12, 13,
+%% 14, and 15.
+
+%% Copies of scratchcards are scored like normal scratchcards and have
+%% the same card number as the card they copied. So, if you win a copy
+%% of card 10 and it has 5 matching numbers, it would then win a copy
+%% of the same cards that the original card 10 won: cards 11, 12, 13,
+%% 14, and 15. This process repeats until none of the copies cause you
+%% to win any more cards. (Cards will never make you copy a card past
+%% the end of the table.)
+
+%% This time, the above example goes differently:
+
+%% Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
+%% Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
+%% Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1
+%% Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
+%% Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
+%% Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
+
+%%     Card 1 has four matching numbers, so you win one copy each of
+%%     the next four cards: cards 2, 3, 4, and 5.
+%%     Your original card 2 has two matching numbers, so you win one
+%%     copy each of cards 3 and 4.
+%%     Your copy of card 2 also wins one copy each of cards 3 and 4.
+%%     Your four instances of card 3 (one original and three copies)
+%%     have two matching numbers, so you win four copies each of cards
+%%     4 and 5.
+%%     Your eight instances of card 4 (one original and seven copies)
+%%     have one matching number, so you win eight copies of card 5.
+%%     Your fourteen instances of card 5 (one original and thirteen
+%%     copies) have no matching numbers and win no more cards.
+%%     Your one instance of card 6 (one original) has no matching numbers and wins no more cards.
+
+%% Once all of the originals and copies have been processed, you end
+%% up with 1 instance of card 1, 2 instances of card 2, 4 instances of
+%% card 3, 8 instances of card 4, 14 instances of card 5, and 1
+%% instance of card 6. In total, this example pile of scratchcards
+%% causes you to ultimately have 30 scratchcards!
+
+%% Process all of the original and copied scratchcards until no more
+%% scratchcards are won. Including the original set of scratchcards,
+%% how many total scratchcards do you end up with?
+
+%% winning cards are worth: 26218
+%% total scratchcards: 9997537
+
+run() ->
+    Cards = parse_cards(input("day04.txt")),
+    part1(Cards),
+    part2(Cards).
+
+part1(Cards) ->
     Sum = score_cards(Cards),
     io:format("winning cards are worth: ~p~n", [Sum]).
 
 score_cards(Cards) ->
-    score_cards(Cards, 0).
+    maps:fold(fun score_cards/3, 0, Cards).
 
-score_cards([], Sum) -> Sum;
-score_cards([Card | Cards], Sum) ->
-    score_cards(Cards, Sum + score_card(Card)).
+score_cards(_CardNo, Numbers, Sum) ->
+    Sum + score_card(Numbers).
 
-score_card({_CardNo, Winning, Have}) ->
-    Set = sets:intersection(sets:from_list(Winning)
-                           ,sets:from_list(Have)
-                           ),
-    case sets:size(Set) of
+score_card(Numbers) ->
+    case matching_numbers(Numbers) of
         0 -> 0;
         Size -> round(math:pow(2, Size-1))
     end.
 
+matching_numbers({Winning, Have}) ->
+    Set = sets:intersection(sets:from_list(Winning)
+                           ,sets:from_list(Have)
+                           ),
+    sets:size(Set).
+
 parse_cards(Input) ->
     Cards = binary:split(Input, <<$\n>>, ['global', 'trim']),
-    lists:foldl(fun parse_card/2, [], Cards).
+    lists:foldl(fun parse_card/2, #{}, Cards).
 
 parse_card(CardBin, Cards) ->
     [<<"Card ", CardNo/binary>>, NumbersBin] = binary:split(CardBin, <<$:>>),
     [WinningBin, HaveBin] = binary:split(NumbersBin, <<$|>>, ['trim']),
     WinningNumbers = to_numbers(WinningBin),
     HaveNumbers = to_numbers(HaveBin),
-    [{binary_to_integer(string:trim(CardNo)), WinningNumbers, HaveNumbers} | Cards].
+    CardNumber = binary_to_integer(string:trim(CardNo)),
+    Cards#{CardNumber => {WinningNumbers, HaveNumbers}}.
 
 to_numbers(NumbersBin) ->
     [binary_to_integer(Bin)
@@ -111,8 +173,26 @@ to_numbers(NumbersBin) ->
         Bin =/= <<>>
     ].
 
-part2(Input) ->
-    Input.
+part2(Cards) ->
+    Count = count_scratchcards(Cards),
+    io:format("total scratchcards: ~p~n", [Count]).
+
+count_scratchcards(Cards) ->
+    MapCardTo = maps:fold(fun count_scratchcard/3, #{}, Cards),
+    {_, Count} = maps:fold(fun count_total/3, {MapCardTo, 0}, MapCardTo),
+    Count.
+
+count_scratchcard(CardNo, Numbers, MapCardTo) ->
+    MapCardTo#{CardNo => matching_numbers(Numbers)}.
+
+count_total(_CardNo, 0, {MapCardTo, Count}) ->
+    {MapCardTo, Count+1};
+count_total(CardNo, N, {MapCardTo, Count}) ->
+    Copies = [CardNo+X || X <- lists:seq(1, N)],
+    lists:foldl(fun count_copy/2, {MapCardTo, Count+1}, Copies).
+
+count_copy(CopyCardNo, {MapCardTo, Count}) ->
+    count_total(CopyCardNo, maps:get(CopyCardNo, MapCardTo, 0), {MapCardTo, Count}).
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
