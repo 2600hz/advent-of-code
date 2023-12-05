@@ -2,7 +2,7 @@
 
 -export([run/0]).
 
-%% https://adventofcode.com/2023/day/3
+%% https://adventofcode.com/2023/day/1
 
 %% Part 1: Calibration values summed: 56465
 %% Part 2: Calibration values summed: 55902
