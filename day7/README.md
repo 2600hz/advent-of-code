@@ -17,3 +17,11 @@ c(day7).
 day7:total_winnings(Input, 1). %% Part 1
 day7:total_winnings(Input, 2). %% Part 2
 ```
+
+## Test cases
+
+```erlang
+{'ok', Input} = file:read_file("test-cases.txt").
+6592 =:= day7:total_winnings(Input, 1). %% Part 1
+6839 =:= day7:total_winnings(Input, 2). %% Part 2
+```
