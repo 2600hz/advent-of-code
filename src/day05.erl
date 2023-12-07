@@ -6,7 +6,6 @@
 %% lowest location: 382895070
 
 run() ->
-    io:format("starting~n"),
     Almanac = parse_almanac(input("day05_part1.txt")),
     io:format('user', "almanac: ~p~n", [Almanac]),
 
