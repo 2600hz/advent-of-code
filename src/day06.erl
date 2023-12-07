@@ -6,9 +6,11 @@
 %% record breakers: 160816
 
 run() ->
-    Races = parse_races(input("day06.txt")),
+    Input = input("day06.txt"),
+    Races = parse_races(Input),
     part1(Races),
-    part2(Races).
+    Race = parse_kerned_race(Input),
+    part2(Race).
 
 part1(Races) ->
     RecordTimes = record_breakers(Races),
@@ -20,16 +22,20 @@ record_breakers(Races) ->
 record_breakers([], RecordTimes) ->
     RecordTimes;
 record_breakers([{RaceTime, RecordDistance} | Races], RecordTimes) ->
-    Breakers = [1 || HoldTime <- lists:seq(1, RaceTime),
-                     RecordDistance < distance(RaceTime, HoldTime)
-               ],
+    Breakers = record_breaker(RaceTime, RecordDistance),
     record_breakers(Races, [lists:sum(Breakers) | RecordTimes]).
+
+record_breaker(RaceTime, RecordDistance) ->
+    [1 || HoldTime <- lists:seq(1, RaceTime),
+          RecordDistance < distance(RaceTime, HoldTime)
+    ].
 
 distance(RaceTime, HoldTime) ->
     (RaceTime - HoldTime) * HoldTime.
 
-part2(Races) ->
-    Races.
+part2({RaceTime, RecordDistance}) ->
+    Breakers = record_breaker(RaceTime, RecordDistance),
+    io:format("kerned race ways to win: ~p~n", [lists:sum(Breakers)]).
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
@@ -47,3 +53,12 @@ parse_races(Input) ->
     io:format("ds: ~s~n", [DistancesBin]),
     {'match', Distances} = re:run(DistancesBin, <<"(\\d+)">>, [{capture, first, binary}, global]),
     lists:zip(Times, lists:map(fun erlang:binary_to_integer/1, [hd(D) || D <- Distances])).
+
+parse_kerned_race(Input) ->
+    [<<"Time: ", TimesBin/binary>>
+    ,<<"Distance: ", DistancesBin/binary>>
+    ] = binary:split(Input, <<$\n>>, ['trim']),
+
+    Time = binary_to_integer(binary:replace(TimesBin, [<<$\n>>, <<" ">>], <<>>, ['global'])),
+    Distance = binary_to_integer(binary:replace(DistancesBin, [<<$\n>>, <<" ">>], <<>>, ['global'])),
+    {Time, Distance}.
