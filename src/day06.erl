@@ -4,6 +4,7 @@
 
 %% https://adventofcode.com/2023/day/6
 %% record breakers: 160816
+%% kerned race ways to win: 46561107
 
 run() ->
     Input = input("day06.txt"),
@@ -14,28 +15,31 @@ run() ->
 
 part1(Races) ->
     RecordTimes = record_breakers(Races),
-    io:format("record breakers: ~p~n", [lists:foldl(fun(T, P) -> T*P end, 1, RecordTimes)]).
+    io:format("record breakers: ~p~n", [RecordTimes]).
 
 record_breakers(Races) ->
-    record_breakers(Races, []).
+    record_breakers(Races, 1).
 
 record_breakers([], RecordTimes) ->
     RecordTimes;
 record_breakers([{RaceTime, RecordDistance} | Races], RecordTimes) ->
-    Breakers = record_breaker(RaceTime, RecordDistance),
-    record_breakers(Races, [lists:sum(Breakers) | RecordTimes]).
+    Breakers = count_winning_times(RaceTime, RecordDistance),
+    record_breakers(Races, Breakers*RecordTimes).
 
-record_breaker(RaceTime, RecordDistance) ->
-    [1 || HoldTime <- lists:seq(1, RaceTime),
-          RecordDistance < distance(RaceTime, HoldTime)
-    ].
-
-distance(RaceTime, HoldTime) ->
-    (RaceTime - HoldTime) * HoldTime.
+%% see Reduced quadratic equation in https://en.wikipedia.org/wiki/Quadratic_equation
+%% ax^2 + bx + c = hold^2 - racetime * hold + distance
+%% a = 1 b=-racetime c=distance
+%% (-b +/- sqrt(b^2 - 4ac)) / 2a
+%% (Racetime +/- sqrt(Racetime^2 - 4 * 1 * Distance)) / 2
+count_winning_times(RaceTime, RecordDistance) ->
+    Root = math:sqrt(RaceTime*RaceTime - (4  * RecordDistance)),
+    Upper = math:floor((RaceTime + Root) / 2),
+    Lower = math:ceil((RaceTime - Root) / 2),
+    round(Upper - Lower + 1).
 
 part2({RaceTime, RecordDistance}) ->
-    Breakers = record_breaker(RaceTime, RecordDistance),
-    io:format("kerned race ways to win: ~p~n", [lists:sum(Breakers)]).
+    Breakers = count_winning_times(RaceTime, RecordDistance),
+    io:format("kerned race ways to win: ~p~n", [Breakers]).
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
@@ -50,7 +54,6 @@ parse_races(Input) ->
              || TimeBin <- binary:split(TimesBin, <<" ">>, ['global', 'trim']),
                 <<>> =/= TimeBin
             ],
-    io:format("ds: ~s~n", [DistancesBin]),
     {'match', Distances} = re:run(DistancesBin, <<"(\\d+)">>, [{capture, first, binary}, global]),
     lists:zip(Times, lists:map(fun erlang:binary_to_integer/1, [hd(D) || D <- Distances])).
 
