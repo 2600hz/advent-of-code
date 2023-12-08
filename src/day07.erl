@@ -4,6 +4,7 @@
 
 %% https://adventofcode.com/2023/day/7
 %% total winnings: 250120186
+%% total joker winnings: 250665248
 
 run() ->
     Hands = parse_hands(input("day07.txt")),
@@ -41,11 +42,28 @@ compare_hands(<<A:8, As/binary>>, <<A:8, Bs/binary>>) ->
 compare_hands(<<A:8, _/binary>>, <<B:8, _/binary>>) ->
     card_strength(A) < card_strength(B).
 
+rank_joker_hands({Rank, HandA, _}, {Rank, HandB, _}) ->
+    compare_joker_hands(HandA, HandB);
+rank_joker_hands({RankA, _, _}, {RankB, _, _}) ->
+    RankA < RankB.
+
+compare_joker_hands(<<A/binary>>, <<A/binary>>) -> 'true';
+compare_joker_hands(<<A:8, As/binary>>, <<A:8, Bs/binary>>) ->
+    compare_joker_hands(As, Bs);
+compare_joker_hands(<<A:8, _/binary>>, <<B:8, _/binary>>) ->
+    joker_strength(A) < joker_strength(B).
+
 hand_strengths(Hands) ->
     [{hand_strength(Hand), Hand, Bid} || {Hand, Bid} <- Hands].
 
-part2(Input) ->
-    Input.
+part2(Hands) ->
+    HandStrengths = hand_strengths_jokers(Hands),
+    Sorted = lists:usort(fun rank_joker_hands/2, HandStrengths),
+    TotalWinnings = total_winnings(Sorted),
+    io:format("total joker winnings: ~p~n", [TotalWinnings]).
+
+hand_strengths_jokers(Hands) ->
+    [hand_strength_joker(Hand, Bid) || {Hand, Bid} <- Hands].
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
@@ -58,6 +76,9 @@ card_strength($J) ->  11;
 card_strength($T) -> 10;
 card_strength(N) ->  N-$0. % 2-9
 
+joker_strength($J) -> 1;
+joker_strength(N) -> card_strength(N).
+
 hand_strength(<<Hand/binary>>) ->
     hand_strength(rank_hand(Hand));
 hand_strength('five') -> 6;
@@ -68,9 +89,44 @@ hand_strength('two') -> 2;
 hand_strength('one') -> 1;
 hand_strength('high') -> 0.
 
+hand_strength_joker(<<Hand/binary>>, Bid) ->
+    rank_hand_joker(Hand, Bid).
+
 rank_hand(Hand) ->
     Cards = [Card || <<Card>> <= Hand],
     rank_cards(lists:sort(Cards)).
+
+rank_hand_joker(HandBin, Bid) ->
+    NonJokers = [Card || <<Card>> <= HandBin, Card =/= $J],
+
+    case 5 - length(NonJokers)  of
+        0 -> {hand_strength(rank_cards(lists:sort(NonJokers))), HandBin, Bid};
+        5 -> {hand_strength('five'), HandBin, Bid};
+        GroupSize ->
+            Additions = permutations(NonJokers, GroupSize),
+
+            RankedHands = [{hand_strength(list_to_binary(NonJokers ++ Addition))
+                           ,list_to_binary((NonJokers ++ Addition))
+                           ,Bid
+                           }
+                           || Addition <- Additions
+                          ],
+            Sorted = lists:usort(fun rank_joker_hands/2, RankedHands),
+            {Rank, _BestHand, Bid} = hd(lists:reverse(Sorted)),
+            {Rank, HandBin, Bid}
+    end.
+
+permutations(List, Size) ->
+    lists:foldl(fun(C, Dupes) ->
+                        [lists:duplicate(Size, C) | Dupes]
+                end
+               ,lists:filter(fun(P) -> length(P) =:= Size end, perms(lists:usort(List)))
+               ,List
+               ).
+
+perms([]) -> [[]];
+perms(L) ->
+    [ [H|T] || H <- L, T <- perms(L--[H]) ].
 
 rank_cards([A, A, A, A, A]) -> 'five';
 rank_cards([A, A, A, A, _]) -> 'four';
