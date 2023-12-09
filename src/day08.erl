@@ -4,7 +4,7 @@
 
 %% https://adventofcode.com/2023/day/8/
 %% steps to finish network: 23147
-
+%% all steps lead to Z: 22289513667691
 
 run() ->
     Network = parse_network(input("day08.txt")),
@@ -12,27 +12,55 @@ run() ->
     part2(Network).
 
 part1(Network) ->
-    Steps = count_steps(Network, <<"AAA">>, <<"ZZZ">>),
+    Steps = count_steps(Network, <<"AAA">>),
     io:format("steps to finish network: ~p~n", [Steps]).
 
-count_steps({StepOrder, Nodes}, Start, Finish) ->
-    count_steps({StepOrder, StepOrder}, Nodes, Start, Finish, 0).
+count_steps({StepOrder, Nodes}, Start) ->
+    count_steps({StepOrder, StepOrder}, Nodes, {Start, 0}).
 
-count_steps(_StepOrders, _Nodes, Finish, Finish, Steps) -> Steps;
-count_steps({StepOrder, []}, Nodes, Start, Finish, Steps) ->
-    count_steps({StepOrder, StepOrder}, Nodes, Start, Finish, Steps);
-count_steps({StepOrder, [NextStep | NextSteps]}, Nodes, Current, Finish, Steps) ->
-    count_steps({StepOrder, NextSteps}, Nodes, take_step(Current, NextStep, Nodes), Finish, Steps+1).
+count_steps(_, _, Steps) when is_integer(Steps) -> Steps;
+count_steps({StepOrder, []}, Nodes, {Start, Steps}) ->
+    count_steps({StepOrder, StepOrder}, Nodes, {Start, Steps});
+count_steps({StepOrder, [NextStep | NextSteps]}, Nodes, {Current, Steps}) ->
+    count_steps({StepOrder, NextSteps}
+               ,Nodes
+               ,take_step(Current, NextStep, Nodes, Steps)
+               ).
 
-take_step(Current, NextNode, Nodes) ->
-    {L, R} = maps:get(Current, Nodes),
-    case NextNode of
-        $L -> L;
-        $R -> R
+take_step(Current, NextNode, Nodes, Steps) ->
+    case maps:get(Current, Nodes) of
+        {<<_:2/binary, $Z>>, _} when NextNode =:= $L -> Steps+1;
+        {_, <<_:2/binary, $Z>>} when NextNode =:= $R -> Steps+1;
+        {L, _} when NextNode =:= $L -> {L, Steps+1};
+        {_, R} when NextNode =:= $R -> {R, Steps+1}
     end.
 
-part2(Network) ->
-    Network.
+part2({_Steps, Nodes}=Network) ->
+    StartingNodes = maps:fold(fun(<<_:2/binary, $A>>=S, _, Ss) -> [S|Ss];
+                                 (_, _, Acc) -> Acc
+                              end
+                             ,[]
+                             ,Nodes
+                             ),
+
+    Steps = [count_steps(Network, StartingNode) || StartingNode <- StartingNodes],
+    io:format("all steps lead to Z: ~p~n", [lcm(Steps)]).
+
+%% Euler's Algorithm
+gcd(A, 0) -> A;
+gcd(A, B) when A < 0 orelse B < 0 -> gcd(abs(A), abs(B));
+gcd(A, B) when A < B -> gcd(B, A);
+gcd(A, B) -> gcd(B, A - B * (A div B)).
+
+%% gcd(A, B, C) = gcd( gcd(a,b), c)
+gcd([A, B | L]) ->
+    lists:foldl(fun(X, Acc) -> gcd(X, Acc) end, gcd(A, B), L).
+
+lcm(A, B) ->
+    A * B div gcd(A, B).
+%% lcm(A, B, C) = lcm( lcm(a,b), c)
+lcm([A, B | L]) ->
+    lists:foldl(fun(X, Acc) -> lcm(X, Acc) end, lcm(A, B), L).
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
