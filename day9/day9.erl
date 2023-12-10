@@ -4,12 +4,13 @@
 
 sum_extrapolated_values(Input, Part) ->
     Histories = parse_input(Input),
-    Differences = [generate_differences(History) || History <- Histories],
-    Finals = [finals(Diffs, Part) || Diffs <- Differences],
-    NextValues = case Part of
-                     1 -> [lists:sum(Final) || Final <- Finals];
-                     2 -> [progressively_sub(Heads) || Heads <- Finals]
+    Histories1 = case Part of
+                     1 -> Histories;
+                     2 -> [lists:reverse(History) || History <- Histories]
                  end,
+    Differences = [generate_differences(History) || History <- Histories1],
+    Finals = [finals(Diffs) || Diffs <- Differences],
+    NextValues = [lists:sum(Final) || Final <- Finals],
     lists:sum(NextValues).
 
 generate_differences(History) -> generate_differences(History, [[], History]).
@@ -23,12 +24,7 @@ generate_differences([_], [Acc | Differences]) ->
 generate_differences([A, B | Rest], [Acc | Differences]) ->
     generate_differences([B | Rest], [[B - A | Acc] | Differences]).
 
-finals(Differences, 1) -> [lists:last(Diff) || Diff <- Differences];
-finals(Differences, 2) -> [hd(Diff) || Diff <- Differences].
-
-progressively_sub(Heads) ->
-    [0 | Heads1] = lists:reverse(Heads),
-    lists:foldl(fun 'erlang':'-'/2, 0, Heads1).
+finals(Differences) -> [lists:last(Diff) || Diff <- Differences].
 
 parse_input(Input) ->
     Histories = binary:split(Input, <<"\n">>, ['global']),
