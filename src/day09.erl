@@ -4,15 +4,24 @@
 
 %% https://adventofcode.com/2023/day/9/
 %% sum of extrapolation: 1904165718
+%% sum of first extrapolations: 964
 
 run() ->
     Histories = parse_histories(input("day09.txt")),
-    part1(Histories),
-    part2(Histories).
-
-part1(Histories) ->
     Predictions = predict_next(Histories),
-    io:format("sum of extrapolation: ~p~n", [lists:sum(Predictions)]).
+    part1(Predictions),
+    part2(Predictions).
+
+part1(Predictions) ->
+    Lasts = [L || {_, L} <- Predictions],
+    io:format("sum of extrapolation: ~p~n", [lists:sum(Lasts)]).
+
+part2(Predictions) ->
+    Firsts = [firsts_to_prediction(F) || {F, _} <- Predictions],
+    io:format("sum of first extrapolations: ~w~n", [lists:sum(Firsts)]).
+
+firsts_to_prediction(Firsts) ->
+    lists:foldl(fun(First, Sum) -> First - Sum end, 0, Firsts).
 
 predict_next(Histories) ->
     predict_next(Histories, []).
@@ -24,28 +33,25 @@ predict_next([History | Histories], Predictions) ->
     predict_next(Histories, [Prediction | Predictions]).
 
 predict_next_h(History) ->
-    predict_next_h(History, 0).
+    predict_next_h(History, {[], 0}).
 
-predict_next_h(History, Next) ->
-    {Last, Diffs} = diffs(History),
+predict_next_h(History, {Fs, L}) ->
+    {First, Last, Diffs} = diffs(History),
     case lists:all(fun is_zero/1, Diffs) of
-        'true' -> Next + Last;
+        'true' -> {[First | Fs], L+Last};
         'false' ->
-            predict_next_h(Diffs, Next + Last)
+            predict_next_h(Diffs, {[First | Fs], L+Last})
     end.
 
-diffs(History) ->
-    diffs(History, []).
+diffs([First | _]=History) ->
+    diffs(History, {First, []}).
 
-diffs([A, B], Diffs) ->
-    {B, lists:reverse([B-A | Diffs])};
-diffs([A, B | Rest], Diffs) ->
-    diffs([B | Rest], [B-A | Diffs]).
+diffs([A, B], {First, Diffs}) ->
+    {First, B, lists:reverse([B-A | Diffs])};
+diffs([A, B | Rest], {First, Diffs}) ->
+    diffs([B | Rest], {First, [B-A | Diffs]}).
 
 is_zero(N) -> N =:= 0.
-
-part2(Input) ->
-    Input.
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
