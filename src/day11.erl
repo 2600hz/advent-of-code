@@ -3,6 +3,8 @@
 -export([run/0]).
 
 %% https://adventofcode.com/2023/day/11/
+%% galaxy distances: 9957702
+%% galaxy 1,000,000 distances: 512240933238
 
 run() ->
     Image = parse_image(input("day11.txt")),
@@ -10,10 +12,16 @@ run() ->
     part2(Image).
 
 part1(Image) ->
-    Expanded = expand(Image),
+    Expanded = expand(Image, 1),
 
     Distances = galaxy_distances(Expanded),
-    io:format("galaxy distances: ~p~n", [lists:sum(Distances)]).
+    io:format("galaxy 2x distances: ~p~n", [lists:sum(Distances)]).
+
+part2(Image) ->
+    Expanded = expand(Image, 999999),
+
+    Distances = galaxy_distances(Expanded),
+    io:format("galaxy 1,000,000 distances: ~p~n", [lists:sum(Distances)]).
 
 galaxy_distances(Image) ->
     [G | Galaxies] = maps:keys(Image),
@@ -32,14 +40,14 @@ galaxy_distances(Galaxy, [NextG | Galaxies], Distances) ->
 manhattan_distance({AX, AY}, {BX, BY}) ->
     abs(AX-BX) + abs(AY-BY).
 
-expand(Image) ->
-    expand(Image, maps:keys(Image)).
+expand(Image, Factor) ->
+    expand(Image, Factor, maps:keys(Image)).
 
-expand(#{{max_x, max_y} := {MaxX, MaxY}}=Image, Galaxies) ->
+expand(#{{max_x, max_y} := {MaxX, MaxY}}=Image, Factor, Galaxies) ->
     {Xs, Ys} = lists:unzip(Galaxies),
 
-    Image1 = expand_universe(Image, MaxY, tl(lists:reverse(lists:usort(Ys))), {0, 1}),
-    expand_universe(Image1, MaxX, tl(lists:reverse(lists:usort(Xs))), {1, 0}).
+    Image1 = expand_universe(Image, MaxY, tl(lists:reverse(lists:usort(Ys))), {0, Factor}),
+    expand_universe(Image1, MaxX, tl(lists:reverse(lists:usort(Xs))), {Factor, 0}).
 
 expand_universe(Image, 1, _Ns, _Adjustment) ->
     Image;
@@ -55,15 +63,12 @@ expand_galaxies(Image, N, Adjustment) ->
 
 shift_galaxy_down({max_x, max_y}, {X, Y}, {Image, N, {DX, DY}=Adjustment}) ->
     {Image#{{max_x, max_y} => {X+DX, Y+DY}}, N, Adjustment};
-shift_galaxy_down({GX, GY}, GNo, {Image, Y, {0, 1}=Adjustment}) when GY > Y ->
-    {maps:remove({GX, GY}, Image#{{GX, GY+1} => GNo}), Y, Adjustment};
-shift_galaxy_down({GX, GY}, GNo, {Image, X, {1, 0}=Adjustment}) when GX > X ->
-    {maps:remove({GX, GY}, Image#{{GX+1, GY} => GNo}), X, Adjustment};
+shift_galaxy_down({GX, GY}, GNo, {Image, Y, {0, Factor}=Adjustment}) when GY > Y ->
+    {maps:remove({GX, GY}, Image#{{GX, GY+Factor} => GNo}), Y, Adjustment};
+shift_galaxy_down({GX, GY}, GNo, {Image, X, {Factor, 0}=Adjustment}) when GX > X ->
+    {maps:remove({GX, GY}, Image#{{GX+Factor, GY} => GNo}), X, Adjustment};
 shift_galaxy_down(_, _, {Image, Y, Adjustment}) ->
     {Image, Y, Adjustment}.
-
-part2(Image) ->
-    Image.
 
 input(File) ->
     {'ok', Bin} = file:read_file(filename:join(["src", File])),
