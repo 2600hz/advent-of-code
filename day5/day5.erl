@@ -25,26 +25,25 @@ expand_seed_range([SRange | SRanges], [Mapping | Mappings], Expanded) ->
                 end,
     expand_seed_range(NewSRanges ++ SRanges, Mappings, Expanded1).
 
-partition_overlapping_range({Start, End}, {SrcStart, SrcEnd, Diff})
-  when Start >= SrcStart, End =< SrcEnd ->
-    %% Whole range is within mapping
-    {{Start + Diff, End + Diff}, []};
-partition_overlapping_range({Start, End}, {SrcStart, SrcEnd, Diff})
-  when Start < SrcStart, End >= SrcStart, End =< SrcEnd ->
-    %% Range overlaps start of mapping
-    {{SrcStart + Diff, End + Diff}, [{Start, SrcStart - 1}]};
-partition_overlapping_range({Start, End}, {SrcStart, SrcEnd, Diff})
-  when Start >= SrcStart, Start =< SrcEnd, End > SrcEnd ->
-    %% Range overlaps end of mapping
-    {{Start + Diff, SrcEnd + Diff}, [{SrcEnd + 1, End}]};
-partition_overlapping_range({Start, End}, {SrcStart, SrcEnd, Diff})
-  when Start < SrcStart, End > SrcEnd ->
-    %% Range overlaps both ends of mapping
-    {{SrcStart + Diff, SrcEnd + Diff}, [{Start, SrcStart - 1}, {SrcEnd + 1, End}]};
-partition_overlapping_range({Start, End}, {SrcStart, SrcEnd, _Diff})
-  when Start < SrcStart; End > SrcEnd ->
-    %% Range is before or after mapping
-    {'undefined', [{Start, End}]}.
+partition_overlapping_range({Start, End}, {SrcStart, SrcEnd, Diff}) ->
+    case range:partition_overlap({Start, End}, {SrcStart, SrcEnd}) of
+        {_Before, 'undefined', _After} ->
+            {'undefined', [{Start, End}]};
+        {Before, {OStart, OEnd}, After} ->
+            NewSRanges = new_seed_ranges([Before, After], {Start, End}),
+            {{OStart + Diff, OEnd + Diff}, NewSRanges}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Find the non-overlapping ranges in `BeforeAfter' that should be carried
+%% over from the original seed ranges.
+%% @end
+%%------------------------------------------------------------------------------
+new_seed_ranges(BeforeAfter, SRange) ->
+    Overlaps = [range:overlap(Range, SRange)
+                || Range <- BeforeAfter, Range =/= 'undefined'
+               ],
+    [Range || Range <- Overlaps, Range =/= 'undefined'].
 
 parse_almanac(Input, Part) ->
     [SeedsInput, MapsInput] = binary:split(Input, <<"\n\n">>),
