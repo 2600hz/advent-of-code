@@ -13,14 +13,14 @@ count_steps(Input) ->
     {Instructions, Tree} = parse_input(Input),
     EndCond = fun(Node) -> Node =:= ?END end,
     Steps = steps(Instructions, Tree, [?START], EndCond),
-    lists:foldl(fun lcm/2, 1, Steps).
+    lists:foldl(fun math2:lcm/2, 1, Steps).
 
 count_simultaneous_steps(Input) ->
     {Instructions, Tree} = parse_input(Input),
     Starts = [Key || ?START2=Key <- maps:keys(Tree)],
     EndCond = fun(?END2) -> 'true'; (_) -> 'false' end,
     Steps = steps(Instructions, Tree, Starts, EndCond),
-    lists:foldl(fun lcm/2, 1, Steps).
+    lists:foldl(fun math2:lcm/2, 1, Steps).
 
 steps(Instructions, Tree, Starts, EndCond) ->
     [steps(Instructions, Tree, Start, EndCond, Instructions, 0)
@@ -43,11 +43,6 @@ next_node(Instruction, Tree, Node) ->
         $L -> Left;
         $R -> Right
     end.
-
-lcm(A, B) -> A * B div gcd(A, B).
-
-gcd(A, 0) -> A;
-gcd(A, B) -> gcd(B, A rem B).
 
 parse_input(Input) ->
     [InstructionsInput, TreeInput] = binary:split(Input, <<"\n\n">>, ['global']),
