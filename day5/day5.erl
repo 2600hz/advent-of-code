@@ -29,21 +29,11 @@ partition_overlapping_range({Start, End}, {SrcStart, SrcEnd, Diff}) ->
     case range:partition_overlap({Start, End}, {SrcStart, SrcEnd}) of
         {_Before, 'undefined', _After} ->
             {'undefined', [{Start, End}]};
-        {Before, {OStart, OEnd}, After} ->
-            NewSRanges = new_seed_ranges([Before, After], {Start, End}),
-            {{OStart + Diff, OEnd + Diff}, NewSRanges}
+        {{Before1, _Before2}, {OStart, OEnd}, {After1, _After2}} ->
+            {{OStart + Diff, OEnd + Diff}
+            ,[R || R <- [Before1, After1], R =/= 'undefined']
+            }
     end.
-
-%%------------------------------------------------------------------------------
-%% @doc Find the non-overlapping ranges in `BeforeAfter' that should be carried
-%% over from the original seed ranges.
-%% @end
-%%------------------------------------------------------------------------------
-new_seed_ranges(BeforeAfter, SRange) ->
-    Overlaps = [range:overlap(Range, SRange)
-                || Range <- BeforeAfter, Range =/= 'undefined'
-               ],
-    [Range || Range <- Overlaps, Range =/= 'undefined'].
 
 parse_almanac(Input, Part) ->
     [SeedsInput, MapsInput] = binary:split(Input, <<"\n\n">>),
