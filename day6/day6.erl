@@ -9,17 +9,10 @@ record_ways_product(Input, Part) ->
     lists:foldl(fun 'erlang':'*'/2, 1, Ranges).
 
 add_bounds({Time, Record}) ->
-    Lower = floor(quadratic(1, -Time, Record, 'lower') + 1),
-    Upper = ceil(quadratic(1, -Time, Record, 'upper') - 1),
+    Lower = floor(math2:quadratic(1, -Time, Record, 'lower') + 1),
+    Upper = ceil(math2:quadratic(1, -Time, Record, 'upper') - 1),
     Range = Upper - Lower + 1,
     {Time, Record, Lower, Upper, Range}.
-
-quadratic(A, B, C, UpperOrLower) ->
-    Oper = case UpperOrLower of
-               'upper' -> fun 'erlang':'+'/2;
-               'lower' -> fun 'erlang':'-'/2
-           end,
-    Oper(-B, math:sqrt(math:pow(B, 2) - 4 * A * C)) / (2 * A).
 
 parse_races(Input, Part) ->
     [Time, Distance] = binary:split(Input, <<"\n">>),

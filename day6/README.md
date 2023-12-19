@@ -6,11 +6,18 @@
 
 ## Compile
 
-```erlang
-c(day6).
-```
+1. Compile the [`aoc_utils`](../aoc_utils/) app.
+2. Compile the solution module.
+
+    ```erlang
+    c(day6).
+    ```
 
 ## Run
+
+```shell
+erl -pa ../aoc_utils/_build/default/lib/aoc_utils/ebin
+```
 
 ```erlang
 {'ok', Input} = file:read_file("input.txt").
