@@ -6,7 +6,7 @@
 %% sum of arrangements: 6981
 
 run() ->
-    Input = parse_reports(input("day12.txt")),
+    Input = parse_reports(input("day12_part1.txt")),
     part1(Input),
     part2(Input).
 
@@ -15,13 +15,18 @@ part1(Reports) ->
     io:format("sum of arrangements: ~p~n", [lists:sum(Arrs)]).
 
 count_arrangements(Reports) ->
-    [count_arrangement(Report) || Report <- Reports].
+    %%[count_arrangement(Report) || Report <- Reports].
+    [count_arrangement(hd(Reports))].
 
 count_arrangement({SC, DR}) ->
-    Options = enumerate_options(SC),
+    io:format("counting ~s: ~p~n", [SC, DR]),
+    Options = enumerate_options(SC, DR),
+    io:format("options: ~p~n", [Options]),
     lists:foldl(fun(O, C) ->
                         case damage_report(O) =:= DR of
-                            'true' -> C+1;
+                            'true' ->
+                                io:format("~p matches ~p~n", [O, DR]),
+                                C+1;
                             'false' -> C
                         end
                 end
@@ -29,17 +34,25 @@ count_arrangement({SC, DR}) ->
                ,Options
                ).
 
-enumerate_options([$?]) -> [[$.], [$#]];
-enumerate_options([$.]) -> [[$.]];
-enumerate_options([$#]) -> [[$#]];
+enumerate_options([], []) -> [[]];
+enumerate_options([], [0]) -> [[]];
+enumerate_options(SC, []) -> SC;
 
-enumerate_options([$? | Conditions]) ->
-    Options = enumerate_options(Conditions),
-    [[$. | Option] || Option <- Options]
-        ++ [[$# | Option] || Option <- Options];
-enumerate_options([C | Conditions]) ->
-    Options = enumerate_options(Conditions),
-    [[C | Option] || Option <- Options].
+enumerate_options([$. | SC], [0 | DR]) ->
+    [[$. | O] || O <- enumerate_options(SC, DR)];
+enumerate_options([$. | SC], DR) ->
+    [[$. | O] || O <- enumerate_options(SC, DR)];
+
+enumerate_options([$# | SC], [0 | DR]) ->
+    enumerate_options([$# | SC], DR);
+enumerate_options([$# | SC], [D | DR]) ->
+    [[$# | O] || O <- enumerate_options(SC, [D-1 | DR])];
+
+enumerate_options([$? | SC], [0 | DR]) ->
+    enumerate_options([$. | SC], DR);
+enumerate_options([$? | SC], DR) ->
+    enumerate_options([$. | SC], DR)
+        ++ enumerate_options([$# | SC], DR).
 
 %% take a spring condition report and generate the damaged springs report
 damage_report(SpringConditions) ->
