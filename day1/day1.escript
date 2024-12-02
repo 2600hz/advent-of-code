@@ -9,10 +9,10 @@
 %% API
 
 main([]) ->
-    {ok, Sample} = file:read_file("puzzle.txt"),
-    %% {ok, Sample} = file:read_file("sample.txt"),
+    {ok, Input} = file:read_file("puzzle.txt"),
+    %% {ok, Input} = file:read_file("sample.txt"),
 
-    Lines = binary:split(Sample, <<"\n">>, ['global', 'trim']),
+    Lines = binary:split(Input, <<"\n">>, ['global', 'trim']),
 
     {Left, Right} = split_lists(Lines),
 
