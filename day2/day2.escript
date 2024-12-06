@@ -70,15 +70,12 @@ is_damp_report([L1, L2 | Rest], 'false', ValidLevels, Restarted)
 
 %% invalid but not restarted
 is_damp_report([L1, L2 | Rest], _IsAsc, ValidLevels, 'false') ->
-    %% io:format("  invalid asc:~p: ~p -> ~p~n", [_IsAsc, L1, L2]),
     restart([L2 | Rest], ValidLevels)
         orelse restart([L1 | Rest], ValidLevels);
 %% invalid and already restarted, unsafe
 is_damp_report(_Levels, _, _, 'true') ->
-    %% io:format("  not safe: ~p~n", [_Levels]),
     'false'.
 
 restart(Levels, ValidLevels) ->
     [N1, N2 | _] = NewLevels = lists:reverse(ValidLevels) ++ Levels,
-    %% io:format("  restarting with ~p~n", [NewLevels]),
     is_damp_report(NewLevels, N1 < N2, [], 'true').
