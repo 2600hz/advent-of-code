@@ -11,7 +11,7 @@
 main([]) ->
     {ok, Input} = file:read_file("puzzle.txt"),
     %% {'ok', Input} = file:read_file("sample.txt"),
-    %% Input = <<"..X...\n.SAMX.\n.A..A.\nXMAS.S\n.X....\n......">>,
+    %% Input = <<"M.S\n.A.\nM.S">>,
 
     Rows = binary:split(Input, <<"\n">>, ['global', 'trim']),
     {_Y, Map} = lists:foldl(fun to_map/2, {1, #{}}, Rows),
@@ -19,9 +19,52 @@ main([]) ->
     [MaxXY | _] = lists:reverse(lists:sort(maps:keys(Map))),
     io:format("max XY: ~p~n", [MaxXY]),
 
-    Count = count_xmas(Map, MaxXY),
+    XMAS = count_xmas(Map, MaxXY),
 
-    io:format("found: ~p~n", [Count]).
+    MAS = count_mas(Map, MaxXY),
+
+    io:format("XMAS: ~p~nMAS: ~p~n", [XMAS, MAS]).
+
+count_mas(Map, MaxXY) ->
+    count_mas(Map, MaxXY, {1, 1}, 0).
+
+count_mas(_Map, {MaxX, MaxY}, {X, Y}, Count) when X+1 =:= MaxX, Y+2 =:= MaxY ->
+    Count;
+count_mas(Map, {MaxX, MaxY}, {X, Y}, Count) when X+1 =:= MaxX ->
+    count_mas(Map, {MaxX, MaxY}, {1, Y+1}, Count);
+count_mas(Map, MaxXY, {X, Y}, Count) ->
+    Cell = [maps:get({A, B}, Map) || A <- lists:seq(X, X+2),
+                                     B <- lists:seq(Y, Y+2)
+           ],
+
+    L2R = case Cell of
+              [$M, _, _
+              ,_, $A, _
+              ,_, _, $S
+              ] -> 'true';
+              [$S, _, _
+              ,_, $A, _
+              ,_, _, $M
+              ] -> 'true';
+              _ -> 'false'
+          end,
+
+    R2L = case Cell of
+              [_, _, $M
+              ,_, $A, _
+              ,$S, _, _
+              ] -> 'true';
+              [_, _, $S
+              ,_, $A, _
+              ,$M, _, _
+              ] -> 'true';
+              _ -> 'false'
+          end,
+
+    count_mas(Map, MaxXY, {X+1, Y}, Count + mas_found(L2R, R2L)).
+
+mas_found('true', 'true') -> 1;
+mas_found(_, _) -> 0.
 
 count_xmas(Map, MaxXY) ->
     RowCount = walk_rows(Map, MaxXY),
@@ -30,7 +73,6 @@ count_xmas(Map, MaxXY) ->
     R2LCount = walk_r2l(Map, MaxXY),
 
     RowCount + ColCount + L2RCount + R2LCount.
-
 
 walk_l2r(Map, {_MaxX, MaxY}=MaxXY) ->
     walk_l2r(Map, MaxXY, {1, MaxY-3}, 0).
