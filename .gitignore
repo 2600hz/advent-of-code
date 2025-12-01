@@ -1,0 +1,4 @@
+aoc/priv/*.*
+aoc/ebin
+/aoc/.erlang.mk/
+/aoc/aoc.d
